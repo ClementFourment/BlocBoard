@@ -12,7 +12,7 @@ export default function CustomDrawerContent(props: any) {
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.header}>
-        <Text style={styles.title}>🧗‍♂️ BlocBoard</Text>
+        <Text style={styles.title}>BlockBoard</Text>
       </View>
       <DrawerItem label="Accueil" onPress={() => router.push('/')} />
       <DrawerItem label="Déconnexion" onPress={handleLogout} />

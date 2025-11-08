@@ -1,25 +1,24 @@
+import BlocList from '@/components/BlocList';
+import SalleMap from '@/components/SalleMap';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import BlocList from '../components/BlocList';
-import SalleMap from '../components/SalleMap';
 import { Block } from '../interfaces/Block';
 import { supabase } from '../lib/supabase';
 
 
 export default function Home() {
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [loading, setLoading] = useState(true);
+    const [blocks, setBlocks] = useState<Block[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBlocks();
-  }, []);
+    useEffect(() => {
+        fetchBlocks();
+    }, []);
 
-  const fetchBlocks = async () => {
-    try {
+    const fetchBlocks = async () => {
         const { data, error } = await supabase
-        .from('blocks')
-        .select('*')
-        .order('date_ouverture', { ascending: false });
+            .from('blocks')
+            .select('*')
+            .order('date_ouverture', { ascending: false });
 
         if (error) {
             console.error(error);
@@ -27,44 +26,72 @@ export default function Home() {
         } else {
             setBlocks(data || []);
         }
-    }
-    catch(e: any) {
-        console.error(e);
-    }
-    finally {
         setLoading(false);
     }
-  };
+    
+    
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#ff6600" />
+                <Text>Chargement des blocs...</Text>
+            </View>
+        );
+    }
 
-  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff6600" />
-      </View>
+        
+        <View style={styles.container}>
+            <SalleMap onSelectMur={(mur) => console.log(mur)} />
+            <BlocList blocks={blocks} />
+        </View>
     );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>BlocBoard - Boulder Line</Text>
-      <SalleMap />  
-      <BlocList blocks={blocks} />
-    </View>
-  );
 }
+
+
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
     backgroundColor: '#f9f9f9',
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
-    marginVertical: 16,
+    marginBottom: 16,
     textAlign: 'center',
     color: '#333',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  image: {
+    width: '100%',
+    height: 160,
+  },
+  info: {
+    padding: 12,
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#111',
+  },
+  detail: {
+    fontSize: 14,
+    color: '#666',
   },
   loadingContainer: {
     flex: 1,
