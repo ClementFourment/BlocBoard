@@ -1,7 +1,9 @@
+import { Int32 } from "react-native/Libraries/Types/CodegenTypesNamespace";
 
 
 export interface Block {
   id: string;
+  murId: Int32;
   nom: string;
   couleur: string;
   color: string,

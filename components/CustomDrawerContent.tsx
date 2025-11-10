@@ -1,34 +1,81 @@
-import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
-import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  DrawerContentComponentProps,
+  DrawerContentScrollView,
+  DrawerItemList,
+} from '@react-navigation/drawer'
+import { useRouter } from 'expo-router'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
-export default function CustomDrawerContent(props: any) {
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace('/login');
-  };
+export default function CustomDrawerContent(props: DrawerContentComponentProps) {
+  const { user } = useAuth()
+  const router = useRouter()
 
   return (
-    <DrawerContentScrollView {...props}>
+    <DrawerContentScrollView {...props} style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>BlockBoard</Text>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {user?.email?.charAt(0).toUpperCase() || '?'}
+          </Text>
+        </View>
+        <Text style={styles.email}>{user?.email}</Text>
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => router.push('/(user)/profile')}
+        >
+          <Text style={styles.profileButtonText}>Voir le profil</Text>
+        </TouchableOpacity>
       </View>
-      <DrawerItem label="Accueil" onPress={() => router.push('/')} />
-      <DrawerItem label="Déconnexion" onPress={handleLogout} />
+
+      <View style={styles.divider} />
+
+      <DrawerItemList {...props} />
     </DrawerContentScrollView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    marginBottom: 8,
+  container: {
+    flex: 1,
   },
-  title: {
-    fontSize: 20,
+  header: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  avatarText: {
+    fontSize: 24,
+    color: '#fff',
     fontWeight: 'bold',
   },
-});
+  email: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+  },
+  profileButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 15,
+  },
+  profileButtonText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 10,
+  },
+})

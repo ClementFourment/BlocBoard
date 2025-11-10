@@ -1,12 +1,13 @@
 import BlocList from '@/components/BlocList';
 import SalleMap from '@/components/SalleMap';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Block } from '../interfaces/Block';
-import { supabase } from '../lib/supabase';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Block } from '../../interfaces/Block';
+import { supabase } from '../../lib/supabase';
 
 
 export default function Home() {
+  
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -41,10 +42,10 @@ export default function Home() {
 
     return (
         
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
             <SalleMap onSelectMur={(mur) => console.log(mur)} />
             <BlocList blocks={blocks} />
-        </View>
+        </ScrollView>
     );
 }
 
