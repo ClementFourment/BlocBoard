@@ -5,7 +5,7 @@ import {
   DrawerItemList,
 } from '@react-navigation/drawer'
 import { useRouter } from 'expo-router'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
   const { user } = useAuth()
@@ -20,12 +20,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
           </Text>
         </View>
         <Text style={styles.email}>{user?.email}</Text>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => router.push('/(user)/profile')}
-        >
-          <Text style={styles.profileButtonText}>Voir le profil</Text>
-        </TouchableOpacity>
+        
       </View>
 
       <View style={styles.divider} />

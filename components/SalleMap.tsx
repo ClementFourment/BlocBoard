@@ -94,11 +94,17 @@ const styles = StyleSheet.create({
     height: 300,
   },
   container: {
-    backgroundColor: 'white',
-    borderRadius: 10,
     height: pageHeight,
     marginVertical: 16,
+
+    backgroundColor: '#fff',
+    borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   svg: {
     backgroundColor: 'transparent', 

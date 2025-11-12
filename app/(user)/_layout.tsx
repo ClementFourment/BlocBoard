@@ -23,7 +23,7 @@ export default function TabsLayout() {
           }}
         />
         <Drawer.Screen
-          name="profile"
+          name="(profile)"
           options={{
             drawerLabel: 'Profil',
             title: 'Mon Profil',
