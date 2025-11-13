@@ -1,5 +1,4 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Users } from '@/interfaces/Users';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -10,10 +9,8 @@ import { Alert, Image, Platform, ScrollView, StyleSheet, Switch, Text, TextInput
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function UpdateProfileScreen() {
-  const { user } = useAuth();
+  const { user, userInfos, avatarKey, refreshAvatar } = useAuth();
 
-  const [userInfos, setUserInfos] = useState<Users>();
-  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     pseudo: '',
@@ -41,25 +38,6 @@ export default function UpdateProfileScreen() {
     }
   }, [userInfos]);
 
-  useEffect(() => {
-    fetchUserInfos();
-  }, []);
-
-  const fetchUserInfos = async () => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user?.id)
-      .single();
-
-    if (error) {
-      console.error(error);
-      alert("Erreur lors de la récupération des informations de l'utilisateur");
-    } else {
-      setUserInfos(data || undefined);
-    }
-    setLoading(false);
-  };
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -86,44 +64,111 @@ export default function UpdateProfileScreen() {
 
       if (error) throw error;
 
-      
-      await fetchUserInfos();
+      // await fetchUserInfos();
       router.back();
     } catch (err) {
       console.error(err);
       alert('Erreur lors de la mise à jour.');
     }
+    
+    
   };
 
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   
+
+
   const pickImage = async () => {
-    console.log('pickImage')
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1], // carré
-      quality: 0.7,
-    });
+
     // Demande la permission
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert("Permission refusée", "Tu dois autoriser l'accès à la galerie pour choisir une photo.");
       return;
     }
-    
-    if (!result.canceled) {
 
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
       console.log("Image sélectionnée :", result.assets[0].uri);
-      setAvatarUri(result.assets[0].uri); 
+      setAvatarUri(result.assets[0].uri);
+      if (user?.id) await uploadImage(result.assets[0].uri, user?.id);
     }
   }
 
+  const uploadImage = async (uri: string, userId: string) => {
+    try {
+
+      const formData = new FormData();
+
+      const fileExtension = uri.split('.').pop() || 'jpg';
+      const fileName = `${userId}.png`;
+
+      formData.append('file', {
+        uri: uri,
+        type: `image/png`,
+        name: fileName,
+      } as any);
+
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, formData, {
+          upsert: true,
+          contentType: `image/png`
+      });
+
+      if (error) throw error;
+      
+
+      // Récupérer l'URL publique
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const publicUrl = data.publicUrl;
+
+      console.log('Image uploadée :', publicUrl);
+
+      // Optionnel : mettre à jour la table users
+      await supabase.from('users').update({ photo_url: `${publicUrl}?t=${Date.now()}` }).eq('id', userId);
+      refreshAvatar();
+    } catch (err) {
+      console.error('Erreur upload image :', err);
+    }
+  };
 
 
+  const handleDeletePhoto = () => {
+    Alert.alert(
+      'Suppression',
+      'Êtes-vous sûr de vouloir supprimer la photo ?',
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: deletePhoto,
+        },
+      ]
+    )
+  }
 
+  const deletePhoto  = async () => {
+    await supabase.from('users').update({ photo_url: '' }).eq('id', user?.id);
+    refreshAvatar();
+    setAvatarUri(null);
+    // fetchUserInfos();
 
-  if (loading) return <Text style={{ padding: 20 }}>Chargement...</Text>;
+  }
+
 
   return (
     
@@ -147,20 +192,27 @@ export default function UpdateProfileScreen() {
         </TouchableOpacity>
       
         <View style={styles.card}>
-          <TouchableOpacity style={styles.avatarContainer} onPress={() => {pickImage}}>
+
+          <TouchableOpacity style={styles.avatarContainer} onPress={() => {pickImage()}}>
             <Ionicons style={styles.pencil} name="pencil-sharp" size={24} color="black" />
 
             <View style={styles.avatar}>
               
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              {avatarUri || userInfos?.photo_url ?  (
+                <Image id='image'  key={avatarKey} source={{ uri: avatarUri || userInfos?.photo_url }} style={styles.avatarImage} />
               ) : (
                 <Text style={styles.avatarText}>
                   {userInfos?.email?.charAt(0).toUpperCase() || '?'}
                 </Text>
               )}
             </View>
-            
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleDeletePhoto()}
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}
+          >
+            <Text style={{ fontSize: 8, color: 'red', fontWeight: '500', marginTop: -10 }}>Supprimer la photo</Text>
           </TouchableOpacity>
 
           <Text style={styles.email}>{userInfos?.email}</Text>
@@ -279,11 +331,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 50,
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80, 
+    borderRadius: 50,
   },
   avatarText: { fontSize: 36, color: '#fff', fontWeight: 'bold' },
   email: { fontSize: 18, fontWeight: '600', marginBottom: 5 },
@@ -293,8 +350,21 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   infoLabel: { flex: 1, fontSize: 14, color: '#666' },
   infoValue: { flex: 2, borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 8, fontWeight: '500' },
-  updateButton: { backgroundColor: '#41b93eff', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 30 },
-  signOutText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  updateButton: { 
+    backgroundColor: '#41b93eff', 
+    padding: 15, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    marginTop: 30,
+    
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+   },
+  signOutText: 
+  { color: '#fff', fontSize: 16, fontWeight: '600' },
   infoInsideInput: {
     position: 'absolute',
     right: 10,

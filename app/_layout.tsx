@@ -1,15 +1,24 @@
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import * as NavigationBar from 'expo-navigation-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
   const { session, loading } = useAuth()
   const segments = useSegments()
   const router = useRouter()
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (loading) return
 
+    // SystemUI.setBackgroundColorAsync('#ffffff');
+    // NavigationBar.setBackgroundColorAsync('#ffffff');
+    NavigationBar.setButtonStyleAsync('dark');
+
+
+
+    if (loading) return
     const inAuthGroup = segments[0] === '(auth)'
 
     if (!session && !inAuthGroup) {
@@ -25,11 +34,20 @@ function RootLayoutNav() {
     return null // ou un écran de chargement
   }
 
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(user)" />
-    </Stack>
+    <SafeAreaProvider style={[{ paddingBottom: insets.bottom || 20 }]}>
+      <Stack screenOptions={
+        { 
+          headerShown: false,
+          statusBarStyle: 'dark',
+          
+        }
+      }>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(user)" />
+      </Stack>
+    </SafeAreaProvider>
   )
 }
 
@@ -40,3 +58,4 @@ export default function RootLayout() {
     </AuthProvider>
   )
 }
+

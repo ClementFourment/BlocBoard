@@ -9,7 +9,7 @@ export interface Users {
   wingspan: Int32,
   weight: Int32;
   birthday: Date;
-  photo_url?: string;
+  photo_url: string;
   visible: boolean;
   created_at: Date;
   updated_at: Date;

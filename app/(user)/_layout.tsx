@@ -18,8 +18,8 @@ export default function TabsLayout() {
         <Drawer.Screen
           name="index"
           options={{
-            drawerLabel: 'Accueil',
-            title: 'Climbing Tracker',
+            drawerLabel: 'Blocs',
+            title: 'Les blocs de BL1',
           }}
         />
         <Drawer.Screen

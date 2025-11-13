@@ -2,16 +2,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('')
@@ -58,9 +57,12 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      contentContainerStyle={{ paddingBottom: 200 }}
+      enableOnAndroid={true}
+      extraScrollHeight={170}
+      keyboardOpeningTime={0}
     >
       <View style={styles.content}>
         <Text style={styles.title}>BlocBoard</Text>
@@ -117,7 +119,7 @@ export default function RegisterScreen() {
           </View>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   )
 }
 
@@ -127,6 +129,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   content: {
+    top: '50%',
+    transform: 'translateY(-50%)',
     flex: 1,
     justifyContent: 'center',
     padding: 20,

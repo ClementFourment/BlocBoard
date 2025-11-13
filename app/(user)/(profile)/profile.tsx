@@ -1,12 +1,10 @@
-import { useAuth } from '@/contexts/AuthContext'
-import { Users } from '@/interfaces/Users'
-import { supabase } from '@/lib/supabase'
-import { router, useFocusEffect } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useAuth } from '@/contexts/AuthContext';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth()
+  const { user, userInfos, signOut, avatarKey, refreshAvatar, fetchUserInfos } = useAuth()
 
   useFocusEffect(
     useCallback(() => {
@@ -36,38 +34,21 @@ export default function ProfileScreen() {
     router.push('/updateProfile');
   }
 
-    const [userInfos, setUserInfos] = useState<Users>();
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchUserInfos();
-    }, []);
-  
-    const fetchUserInfos = async () => {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user?.id)
-            .single();
-
-        if (error) {
-            console.error(error);
-            alert('Erreur lors de la récupération des informations de l\'utilisateur');
-        } else {
-            setUserInfos(data || []);
-        }
-        setLoading(false);
-    }
-
+    
   return (
     <ScrollView style={styles.container}>
 
       <View style={styles.card}>
 
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {userInfos?.email?.charAt(0).toUpperCase() || '?'}
-          </Text>
+          {userInfos?.photo_url ? (
+            <Image key={avatarKey} source={{ uri: userInfos?.photo_url}} style={styles.avatarImage} />
+          ) :
+            <Text style={styles.avatarText}>
+              {userInfos?.email?.charAt(0).toUpperCase() || '?'}
+            </Text>
+          }
         </View>
         
         <Text style={styles.email}>{userInfos?.email}</Text>
@@ -155,11 +136,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 50,
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80, 
+    borderRadius: 50,
   },
   avatarText: {
     fontSize: 36,
@@ -208,6 +194,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 30,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
   signOutButton: {
     backgroundColor: '#FF3B30',
@@ -215,6 +207,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 30,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
   signOutText: {
     color: '#fff',

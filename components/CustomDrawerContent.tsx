@@ -5,20 +5,27 @@ import {
   DrawerItemList,
 } from '@react-navigation/drawer'
 import { useRouter } from 'expo-router'
-import { StyleSheet, Text, View } from 'react-native'
+import { Image, StyleSheet, Text, View } from 'react-native'
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
-  const { user } = useAuth()
+  const { user, userInfos, avatarKey } = useAuth()
   const router = useRouter()
 
   return (
     <DrawerContentScrollView {...props} style={styles.container}>
       <View style={styles.header}>
+
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user?.email?.charAt(0).toUpperCase() || '?'}
-          </Text>
+          {userInfos?.photo_url ? (
+            <Image key={avatarKey} source={{ uri: userInfos?.photo_url}} style={styles.avatarImage} />
+          ) :
+            <Text style={styles.avatarText}>
+              {userInfos?.email?.charAt(0).toUpperCase() || '?'}
+            </Text>
+          }
         </View>
+
+
         <Text style={styles.email}>{user?.email}</Text>
         
       </View>
@@ -41,11 +48,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 50,
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  avatarImage: {
+    width: 60,
+    height: 60, 
+    borderRadius: 50,
   },
   avatarText: {
     fontSize: 24,
