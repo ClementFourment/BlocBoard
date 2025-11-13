@@ -8,9 +8,14 @@ import { useRouter } from 'expo-router'
 import { Image, StyleSheet, Text, View } from 'react-native'
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
-  const { user, userInfos, avatarKey } = useAuth()
+  const { user, userInfos, avatarKey, fetchUserInfos } = useAuth()
   const router = useRouter()
 
+  if (!userInfos) {
+    console.log(userInfos)
+    fetchUserInfos();
+  }
+  
   return (
     <DrawerContentScrollView {...props} style={styles.container}>
       <View style={styles.header}>

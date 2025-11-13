@@ -9,7 +9,7 @@ import { Alert, Image, Platform, ScrollView, StyleSheet, Switch, Text, TextInput
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function UpdateProfileScreen() {
-  const { user, userInfos, avatarKey, refreshAvatar } = useAuth();
+  const { user, userInfos, avatarKey, refreshAvatar, fetchUserInfos } = useAuth();
 
 
   const [formData, setFormData] = useState({
@@ -38,6 +38,11 @@ export default function UpdateProfileScreen() {
     }
   }, [userInfos]);
 
+  useEffect(() => {
+    fetchUserInfos();
+  }, []);
+
+  
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -64,7 +69,7 @@ export default function UpdateProfileScreen() {
 
       if (error) throw error;
 
-      // await fetchUserInfos();
+      await fetchUserInfos();
       router.back();
     } catch (err) {
       console.error(err);
@@ -165,8 +170,8 @@ export default function UpdateProfileScreen() {
     await supabase.from('users').update({ photo_url: '' }).eq('id', user?.id);
     refreshAvatar();
     setAvatarUri(null);
-    // fetchUserInfos();
-
+    fetchUserInfos();
+    console.log(userInfos?.photo_url)
   }
 
 
