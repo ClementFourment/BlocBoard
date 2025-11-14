@@ -1,6 +1,7 @@
 import { Block } from '@/interfaces/Block';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import SalleMapMini from './SalleMapMini';
 
 
 interface Props {
@@ -8,15 +9,27 @@ interface Props {
 }
 
 export default function BlocList({ blocks }: Props) {
-//   const navigation = useNavigation<HomeScreenProp>();
+
+
+  function LazySalleMapMini({ wall }: { wall: number }) {
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+      const t = setTimeout(() => setShow(true), 40 + Math.random() * 120); 
+      return () => clearTimeout(t);
+    }, []);
+
+    if (!show) return null;
+    return <SalleMapMini wall={wall} />;
+  }
 
   return (
     <View style={styles.listContainer}>
-      {blocks.map((item) => (
+      {blocks.map((item, index) => (
+        
         <TouchableOpacity
           key={item.id}
-          style={styles.card}
-          // onPress={() => navigation.navigate('BlockDetails', { blockId: item.id })}
+          style={[styles.card, (index == 0) ? styles.cardFirst : '', (index == blocks.length - 1) ? styles.cardLast : '']}
         >
           <View style={styles.imageContainer}>
             {item.photo_url ? (
@@ -36,14 +49,22 @@ export default function BlocList({ blocks }: Props) {
                   },
                 ]}
               >
-                <Text style={{ color: '#999' }}>Pas de photo</Text>
+                <Text style={{ color: '#999', textAlign: 'center'}}>Pas de photo</Text>
               </View>
             )}
           </View>
+          
           <View style={styles.info}>
-            <Text style={styles.detail}>{item.cotation}</Text>
-            <Text style={styles.detail}>200pts</Text>
+            <View style={styles.detailMap}>
+              <LazySalleMapMini wall={item.murId} />
+            </View>
+            <View></View>
+            <View style={{display: 'flex', flexDirection: 'row'}}>
+              <Text style={styles.detailPoints}>{item.points}</Text>
+              <Text style={styles.detailPts}>pts</Text>
+            </View>
           </View>
+
         </TouchableOpacity>
       ))}
     </View>
@@ -59,8 +80,7 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 6,
+    marginBottom: 2,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -68,6 +88,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     padding: 4
+  },
+  cardFirst: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  cardLast: {
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   imageContainer: {
     display: 'flex',
@@ -100,4 +128,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  detailPoints: {
+    fontSize: 25,
+    fontWeight: 800,
+    opacity: 0.3,
+  },
+  detailPts: {
+    fontWeight: 800,
+    opacity: 0.3,
+    marginTop: 10
+  },
+  detailMap: {
+    position: 'absolute',
+    left: 0,
+    userSelect: 'none',
+    
+  }
 });

@@ -100,7 +100,6 @@ export default function UpdateProfileScreen() {
     });
 
     if (!result.canceled) {
-      console.log("Image sélectionnée :", result.assets[0].uri);
       setAvatarUri(result.assets[0].uri);
       if (user?.id) await uploadImage(result.assets[0].uri, user?.id);
     }
@@ -137,7 +136,6 @@ export default function UpdateProfileScreen() {
 
       const publicUrl = data.publicUrl;
 
-      console.log('Image uploadée :', publicUrl);
 
       // Optionnel : mettre à jour la table users
       await supabase.from('users').update({ photo_url: `${publicUrl}?t=${Date.now()}` }).eq('id', userId);
@@ -171,7 +169,6 @@ export default function UpdateProfileScreen() {
     refreshAvatar();
     setAvatarUri(null);
     fetchUserInfos();
-    console.log(userInfos?.photo_url)
   }
 
 

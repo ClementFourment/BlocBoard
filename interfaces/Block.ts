@@ -14,4 +14,5 @@ export interface Block {
   actif: boolean;
   created_at: Date;
   updated_at: Date;
+  points: Int32;
 }

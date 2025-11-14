@@ -8,7 +8,9 @@ import { supabase } from '../../lib/supabase';
 
 export default function Home() {
   
+    const [selectedMurId, setSelectedMurId] = useState<string | null>(null);
     const [blocks, setBlocks] = useState<Block[]>([]);
+    const [selectedBlocks, changeBlocks] = useState<Block[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -16,20 +18,29 @@ export default function Home() {
     }, []);
 
     const fetchBlocks = async () => {
-        const { data, error } = await supabase
-            .from('blocks')
-            .select('*')
-            .order('date_ouverture', { ascending: false });
+      const { data, error } = await supabase
+          .from('blocks')
+          .select('*')
+          .order('date_ouverture', { ascending: false });
 
-        if (error) {
-            console.error(error);
-            alert('Erreur lors de la récupération des blocs');
-        } else {
-            setBlocks(data || []);
-        }
-        setLoading(false);
+      if (error) {
+          console.error(error);
+          alert('Erreur lors de la récupération des blocs');
+      } else {
+          setBlocks(data || []);
+      }
+      setLoading(false);
     }
     
+    useEffect(() => {
+      if (selectedMurId === null || selectedMurId =='0') {
+        changeBlocks(blocks);
+      } 
+      else {
+        const newBlocs = blocks.filter((bloc) => bloc.murId.toString() === selectedMurId);
+        changeBlocks(newBlocs);
+      }
+    }, [selectedMurId, blocks]);
     
     if (loading) {
         return (
@@ -39,12 +50,11 @@ export default function Home() {
             </View>
         );
     }
-
     return (
         
         <ScrollView style={styles.container}>
-            <SalleMap onSelectMur={(mur) => console.log(mur)} />
-            <BlocList blocks={blocks} />
+            <SalleMap onSelectMur={(mur) => {setSelectedMurId(mur)}} />
+            <BlocList blocks={selectedBlocks} />
         </ScrollView>
     );
 }

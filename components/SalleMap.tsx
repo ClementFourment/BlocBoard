@@ -5,15 +5,6 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { murs } from '../data/murs';
 
-interface Mur {
-  id: string;
-  x: number;
-  y: number;
-  rotation: number;
-  width: number;
-  height: number;
-  // Note: La couleur sera gérée par l'état `selectedMurId`
-}
 
 interface Props {
   onSelectMur: (mur: string) => void;
@@ -27,9 +18,14 @@ export default function SalleMap({ onSelectMur }: Props) {
   const [selectedMurId, setSelectedMurId] = useState<string | null>(null);
 
   const handlePress = (murId: string) => {
-    
-    setSelectedMurId(murId); 
-    onSelectMur(murId);
+    if (murId == selectedMurId) {
+      setSelectedMurId('0');
+      onSelectMur('0');
+    }
+    else {
+      setSelectedMurId(murId);
+      onSelectMur(murId);
+    }
   };
 
   return (
@@ -87,12 +83,6 @@ export default function SalleMap({ onSelectMur }: Props) {
 }
 
 const styles = StyleSheet.create({
-  tinyLogo: {
-    position: 'absolute',
-    marginTop: 20,
-    width: 300,
-    height: 300,
-  },
   container: {
     height: pageHeight,
     marginVertical: 16,
