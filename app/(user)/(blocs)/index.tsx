@@ -2,8 +2,8 @@ import BlocList from '@/components/BlocList';
 import SalleMap from '@/components/SalleMap';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Block } from '../../interfaces/Block';
-import { supabase } from '../../lib/supabase';
+import { Block } from '../../../interfaces/Block';
+import { supabase } from '../../../lib/supabase';
 
 
 export default function Home() {

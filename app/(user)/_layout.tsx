@@ -16,7 +16,7 @@ export default function TabsLayout() {
         }}
       >
         <Drawer.Screen
-          name="index"
+          name="(blocs)"
           options={{
             drawerLabel: 'Blocs',
             title: 'Les blocs de BL1',
