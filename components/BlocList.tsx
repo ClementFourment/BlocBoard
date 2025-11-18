@@ -1,10 +1,11 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { Block } from '@/interfaces/Block';
+import { ValidateBlock } from '@/interfaces/ValidateBlocks';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Animated, Dimensions, Image, Modal, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import ImageViewer from 'react-native-image-zoom-viewer';
+import { ActivityIndicator, Animated, Dimensions, Image, Modal, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import SalleMapMini from './SalleMapMini';
-
 
 interface Props {
   blocks: Block[];
@@ -26,13 +27,19 @@ const COLOR_LEVEL: { [key: string]: string } = {
 
 export default function BlocList({ blocks }: Props) {
   const [selectedBlock, setSelectedBlock] = useState<Block | undefined>();
+  const [validateBlocks, setValidateBlocks] = useState<ValidateBlock[]>([]);
+  
   const [visible, setVisible] = useState(false);
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
 
   const [imageVisible, setImageVisible] = useState(false);
   const [prefetched, setPrefetched] = useState<string | null>(null);
-  
+
+  const [interactable, setInteractable] = useState(false);
+
+  const { user } = useAuth()
+
   const openImage = async (url: string) => {
     await Image.prefetch(url);
     setPrefetched(url);
@@ -61,6 +68,8 @@ export default function BlocList({ blocks }: Props) {
     if (block.photo_url) Image.prefetch(block.photo_url);
     setSelectedBlock(block);
     setVisible(true);
+    setInteractable(false);
+
     Animated.parallel([
       Animated.spring(translateY, {
         toValue: 0,
@@ -73,7 +82,7 @@ export default function BlocList({ blocks }: Props) {
         duration: 250,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start(() => setInteractable(true));
     closeImage()
   };
 
@@ -123,18 +132,92 @@ export default function BlocList({ blocks }: Props) {
   ).current;
 
 
-  const validerBlock = (block: Block) => {
+  const validerBlock = async (block: Block) => {
+    
+    const validateBlock = {
+      idBlock: block.id,
+      idUser: user?.id,
+    }
+
+    if (!validateBlock.idUser) return;
+
+    const { data, error } = await (supabase
+      .from('validateBlocks') as any)
+      .upsert([validateBlock], { onConflict: ['idBlock', 'idUser'] })
+      .select();
+
+    if (error) {
+      console.error("Erreur upsert validateBlock :", error);
+      return null;
+    }
+
     console.log('valider', block.id)
+    
+   fetchValidateBlocks();
   }
+
+  const annulerBlock = async (block: Block) => {
+    if (!user?.id) return;
+
+    const { error } = await supabase
+      .from('validateBlocks')
+      .delete()
+      .eq('idBlock', block.id)
+      .eq('idUser', user.id);
+
+    if (error) {
+      console.error("Erreur lors de l'annulation du bloc :", error);
+      return;
+    }
+
+    console.log('Bloc annulé :', block.id);
+
+    fetchValidateBlocks();
+  }
+
+  const fetchValidateBlocks = async () => {
+    setInteractable(false);
+    const { data, error } = await supabase
+        .from('validateBlocks')
+        .select('*')
+        .eq('idUser', user?.id);
+
+    if (error) {
+        console.error(error);
+        alert('Erreur lors de la récupération des blocs');
+    } else {
+        setValidateBlocks(data || []);
+        setInteractable(true);
+    }
+  }
+
+  function test(s: Block) {
+    const selectedId = s.id;
+    const isValidated = validateBlocks.some(b => b.idBlock === selectedId);
+
+    console.log(isValidated)
+  }
+
+
+  useEffect(() => {
+      fetchValidateBlocks();
+  }, []);
+
+  
 
 
   return (
     <View style={styles.listContainer}>
-      {blocks.map((item, index) => (
+      {blocks.map((item, index) => {
+        
+        const isValidated = validateBlocks.some(b => b.idBlock === item.id);
+        
+        return (
         <TouchableOpacity
           key={item.id}
           style={[
-            styles.card, 
+            styles.card,
+            isValidated ? styles.bgValidate : '',
             index === 0 ? styles.cardFirst : {}, 
             index === blocks.length - 1 ? styles.cardLast : {}
           ]}
@@ -178,7 +261,7 @@ export default function BlocList({ blocks }: Props) {
             </View>
           </View>
         </TouchableOpacity>
-      ))}
+      )})}
 
 
       
@@ -213,18 +296,23 @@ export default function BlocList({ blocks }: Props) {
 
 
           {/* Sheet */}
+          {selectedBlock && (
           <Animated.View
             style={[
               styles.sheet,
+              validateBlocks.some(b => b.idBlock === selectedBlock.id) ? '' : '',
               { transform: [{ translateY }] }
             ]}
             {...panResponder.panHandlers}
           >
+            
             {/* Handle */}
-            <View style={styles.handleContainer}>
-              <View style={styles.handle} />
+            
+            <View style={[styles.handleContainer, 
+                          
+                        ]}>
+              <View style={[styles.handle]} />
             </View>
-
 
 
 
@@ -234,12 +322,15 @@ export default function BlocList({ blocks }: Props) {
               showsVerticalScrollIndicator={false}
               bounces={false}
             >
-              {selectedBlock && (
+              
                 <View>
                   <View style={styles.content}>
                     {/* Header */}
                     <View
-                      style={[styles.card, 
+                      style={[
+                        styles.card,
+                        validateBlocks.some(b => b.idBlock === selectedBlock.id) ?
+                        '' : '', 
                         { shadowColor: 'transparent', elevation: 0},
                       ]}
                     >
@@ -289,14 +380,14 @@ export default function BlocList({ blocks }: Props) {
                         <TouchableOpacity style={styles.closeButton} onPress={closeImage}>
                           <Ionicons name="close" size={32} color="#fff" />
                         </TouchableOpacity>
-                        <ImageViewer
+                        {/* <ImageViewer
                           imageUrls={[{ url: prefetched as string }]}
                           enableSwipeDown={false}
                           onSwipeDown={closeImage}
                           renderIndicator={() => <></>}
                           saveToLocalByLongPress={false}
                           backgroundColor="rgba(0,0,0,0.9)"
-                        />
+                        /> */}
                       </Modal>
                       {selectedBlock.photo_url ? (
                         <TouchableOpacity onPress={() => openImage(selectedBlock.photo_url || '')}>
@@ -323,19 +414,41 @@ export default function BlocList({ blocks }: Props) {
                     </View>
 
                     
-
                     {/* Action Button */}
                     <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => validerBlock(selectedBlock)}
+                      disabled={!interactable}
+                      style={[styles.actionButton,
+                        validateBlocks.some(b => b.idBlock === selectedBlock.id) ?
+                        styles.btnSupprimer : styles.btnValider
+                      ]}
+                      onPress={() => validateBlocks.some(b => b.idBlock === selectedBlock.id) ? 
+                        annulerBlock(selectedBlock)
+                        : validerBlock(selectedBlock)
+                      }
                     >
-                      <Ionicons style={styles.actionButtonText} name="checkmark" size={30} color="black" />
+                      {!interactable ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) :
+                      
+                      
+                      validateBlocks.some(b => b.idBlock === selectedBlock.id) ?
+                        (
+                          <Ionicons style={styles.actionButtonText} name="checkmark" size={30} color="black" />
+                        ) 
+                        :(
+                          <Ionicons style={styles.actionButtonText} name="checkmark" size={30} color="black" />
+                        ) 
+                      }
+                      
                     </TouchableOpacity>
+
+
                   </View>
                 </View>
-              )}
+              
             </ScrollView>
           </Animated.View>
+          )}
         </View>
       </Modal>
     </View>
@@ -440,6 +553,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  bgValidate: {
+    backgroundColor: '#bfffc4ff',
   },
   content: {
     // paddingHorizontal: 20,
@@ -581,4 +697,10 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
   },
+  btnValider: {
+    backgroundColor: '#c3c3c3ff',
+  },
+  btnSupprimer: {
+    backgroundColor: '#41b93eff',
+  }
 });

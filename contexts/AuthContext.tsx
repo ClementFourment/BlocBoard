@@ -45,23 +45,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setAvatarKey(Date.now());
   };
 
+  
+
   const fetchUserInfos = async () => {
     supabase.auth.getSession()
-      .then(async ({ data: { session } }) => {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session?.user?.id)
-            .single();
+    .then(async ({ data: { session } }) => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session?.user?.id)
+        .single();
 
-        if (error) {
-            console.error(error);
-            alert('Erreur lors de la récupération des informations de l\'utilisateur');
-        } else {
-            setUserInfos(data || []);
-        }
-      })
-    }
+      if (error) {
+          console.error(error);
+          alert('Erreur lors de la récupération des informations de l\'utilisateur');
+      } else {
+          setUserInfos(data || []);
+      }
+
+
+    })
+    
+  }
 
 
   
@@ -80,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session)
       setUser(session?.user ?? null)
     })
-
+    
     return () => subscription.unsubscribe()
   }, [])
 
@@ -105,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, userInfos, loading, signIn, signUp, signOut, avatarKey, refreshAvatar, fetchUserInfos}}>
+    <AuthContext.Provider value={{ session, user, userInfos, loading, signIn, signUp, signOut, avatarKey, refreshAvatar, fetchUserInfos }}>
       {children}
     </AuthContext.Provider>
   )
