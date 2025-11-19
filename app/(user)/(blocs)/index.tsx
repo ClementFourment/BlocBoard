@@ -1,6 +1,7 @@
 import BlocList from '@/components/BlocList';
 import SalleMap from '@/components/SalleMap';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Block } from '../../../interfaces/Block';
 import { supabase } from '../../../lib/supabase';
@@ -16,6 +17,12 @@ export default function Home() {
     useEffect(() => {
         fetchBlocks();
     }, []);
+
+    useFocusEffect(
+      useCallback(() => {
+        fetchBlocks();
+      }, [])
+    );
 
     const fetchBlocks = async () => {
       const { data, error } = await supabase
@@ -54,7 +61,7 @@ export default function Home() {
         
         <ScrollView style={styles.container}>
             <SalleMap onSelectMur={(mur) => {setSelectedMurId(mur)}} />
-            <BlocList blocks={selectedBlocks} />
+            <BlocList blocks={selectedBlocks} fetchBlocks={fetchBlocks} selectedMurId={selectedMurId} />
         </ScrollView>
     );
 }

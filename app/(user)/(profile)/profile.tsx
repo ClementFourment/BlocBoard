@@ -101,16 +101,17 @@ export default function ProfileScreen() {
         
       </View>
 
-
+      <View style={{display: 'flex', alignItems: 'center'}}>
         <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
             <Text style={styles.signOutText}>Modifier le profil</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Se déconnecter</Text>
         </TouchableOpacity>
-
+      </View>
         <View style={styles.divider2} />
         <View style={styles.divider2} />
+        
     </ScrollView>
   )
 }
@@ -120,6 +121,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 20,
+    
     
   },
   card: {
@@ -190,8 +192,9 @@ const styles = StyleSheet.create({
   },
   updateButton: {
     backgroundColor: '#41b93eff',
-    padding: 15,
-    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 50,
     alignItems: 'center',
     marginTop: 30,
 
@@ -202,9 +205,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   signOutButton: {
-    backgroundColor: '#FF3B30',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: 'red',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 50,
     alignItems: 'center',
     marginTop: 30,
 

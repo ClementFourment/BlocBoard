@@ -1,33 +1,36 @@
+import { COLOR_LEVEL } from '@/constants/colorLevel';
 import { useAuth } from '@/contexts/AuthContext';
 import { Block } from '@/interfaces/Block';
 import { ValidateBlock } from '@/interfaces/ValidateBlocks';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, Image, Modal, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, Image, Modal, PanResponder, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SalleMapMini from './SalleMapMini';
 
 
 interface Props {
   blocks: Block[];
+  fetchBlocks: () => Promise<void>;
+  selectedMurId: string | null;
 }
 
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-const COLOR_LEVEL: { [key: string]: string } = {
-  'yellow': '#ffee00ff',
-  'orange': '#ffb300ff',
-  'blue': '#005effff',
-  'cyan': '#00fbffff',
-  'red': '#ff0000ff',
-  'pink': '#ff00b7ff',
-  'green': '#11ff00ff',
-  'black': '#000'
-}
+export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) {
 
-export default function BlocList({ blocks }: Props) {
+  const insets = useSafeAreaInsets();
+  const SCREEN_HEIGHT = Dimensions.get('screen').height - insets.top - insets.bottom;
+  // console.log('\nscreen', Dimensions.get('screen').height,
+  //             '\nwindow', Dimensions.get('window').height,
+  //             '\nbottom', insets.bottom,
+  //             '\ntop', insets.top,
+  //             '\ntotal', insets.top + Dimensions.get('window').height + insets.bottom
+  //           )
+
   const [selectedBlock, setSelectedBlock] = useState<Block | undefined>();
   const [validateBlocks, setValidateBlocks] = useState<ValidateBlock[]>([]);
   
@@ -40,12 +43,17 @@ export default function BlocList({ blocks }: Props) {
 
   const [interactable, setInteractable] = useState(false);
 
-  const { user } = useAuth()
+  const { user, userInfos } = useAuth()
 
   const openImage = async (url: string) => {
-    await Image.prefetch(url);
-    setPrefetched(url);
-    setImageVisible(true);
+    try {
+
+      await Image.prefetch(url);
+      setPrefetched(url);
+      setImageVisible(true);
+    }catch(e) {
+      console.error("Image not found")
+    }
   };
 
   const closeImage = () => {
@@ -207,9 +215,60 @@ export default function BlocList({ blocks }: Props) {
 
   
 
+  const handleDeleteBlock = (block: Block) => {
+    Alert.alert(
+      'Suppression',
+      'Êtes-vous sûr de vouloir supprimer ce bloc ?',
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => deleteBlock(block),
+        },
+      ]
+    )
+  }
+
+  const deleteBlock = async (block: Block) => {
+    console.log('Suppression...')
+    const { error } = await supabase
+        .from('blocks')
+        .delete()
+        .eq('id', block.id);
+
+    if (error) {
+        console.error(error);
+        alert('Erreur lors de la suppression du bloc');
+    } else {
+      fetchBlocks();
+      fetchValidateBlocks();
+      closeSheet();
+    }
+  }
 
   return (
     <View style={styles.listContainer}>
+
+
+      <View style={{display: 'flex', alignItems: 'center'}}>
+        
+        { (userInfos?.admin && selectedMurId && Number(selectedMurId) > 0) ? (
+          <TouchableOpacity
+            disabled={!interactable}
+            style={styles.addBlockButton}
+            onPress={ () => router.push(`/addBlock?selectedMurId=${selectedMurId}`)}
+          >
+            <Text style={styles.addBlockButtonText}>Ajouter un bloc</Text>
+          </TouchableOpacity>
+          ) :''
+        }
+
+      </View>
+
       {blocks.map((item, index) => {
         
         const isValidated = validateBlocks.some(b => b.idBlock === item.id);
@@ -229,14 +288,17 @@ export default function BlocList({ blocks }: Props) {
             {item.photo_url ? (
               <Image
                 source={{ uri: item.photo_url }}
-                style={[styles.image, { borderColor: '#'+item.colorBlock }]}
+                style={[styles.image, { borderColor: item.colorBlock }]}
+                onError={() => {
+                  return null;
+                }}
               />
             ) : (
               <View
                 style={[
                   styles.image,
                   {
-                    borderColor: '#'+item.colorBlock,
+                    borderColor: item.colorBlock,
                     backgroundColor: '#eee',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -302,6 +364,7 @@ export default function BlocList({ blocks }: Props) {
           <Animated.View
             style={[
               styles.sheet,
+              {height: SCREEN_HEIGHT *0.9},
               validateBlocks.some(b => b.idBlock === selectedBlock.id) ? '' : '',
               { transform: [{ translateY }] }
             ]}
@@ -319,10 +382,10 @@ export default function BlocList({ blocks }: Props) {
 
 
 
-            <ScrollView 
+            <View 
               style={styles.scrollView}
-              showsVerticalScrollIndicator={false}
-              bounces={false}
+              // showsVerticalScrollIndicator={false}
+              // bounces={false}
             >
               
                 <View>
@@ -340,14 +403,17 @@ export default function BlocList({ blocks }: Props) {
                         {selectedBlock.photo_url ? (
                           <Image
                             source={{ uri: selectedBlock.photo_url }}
-                            style={[styles.image, { borderColor: '#'+selectedBlock.colorBlock }]}
+                            style={[styles.image, { borderColor: selectedBlock.colorBlock }]}
+                            onError={() => {
+                              return null;
+                            }}
                           />
                         ) : (
                           <View
                             style={[
                               styles.image,
                               {
-                                borderColor: '#'+selectedBlock.colorBlock,
+                                borderColor: selectedBlock.colorBlock,
                                 backgroundColor: '#eee',
                                 justifyContent: 'center',
                                 alignItems: 'center',
@@ -373,8 +439,7 @@ export default function BlocList({ blocks }: Props) {
                       </View>
                     </View>
 
-
-                    {/* Details */}
+                    {/* image + modale de l'image */}
                     <View style={styles.detailsContainer}>
 
 
@@ -395,7 +460,7 @@ export default function BlocList({ blocks }: Props) {
                         <TouchableOpacity onPress={() => openImage(selectedBlock.photo_url || '')}>
                           <Image 
                             source={{ uri: selectedBlock.photo_url }}
-                            style={[styles.imageInfos, { borderColor: '#'+selectedBlock.colorBlock }]}
+                            style={[styles.imageInfos, { height: SCREEN_HEIGHT*0.66, borderColor: selectedBlock.colorBlock }]}
                           />
                         </TouchableOpacity>
                         ) : (
@@ -403,7 +468,8 @@ export default function BlocList({ blocks }: Props) {
                             style={[
                               styles.imageInfos,
                               {
-                                borderColor: '#'+selectedBlock.colorBlock,
+                                height: SCREEN_HEIGHT*0.66,
+                                borderColor: selectedBlock.colorBlock,
                                 backgroundColor: '#eee',
                                 justifyContent: 'center',
                                 alignItems: 'center',
@@ -420,6 +486,7 @@ export default function BlocList({ blocks }: Props) {
                     <TouchableOpacity 
                       disabled={!interactable}
                       style={[styles.actionButton,
+                        {top: SCREEN_HEIGHT*0.66 + 70},
                         validateBlocks.some(b => b.idBlock === selectedBlock.id) ?
                         styles.btnSupprimer : styles.btnValider
                       ]}
@@ -443,12 +510,31 @@ export default function BlocList({ blocks }: Props) {
                       }
                       
                     </TouchableOpacity>
+                    
+                    {/* Bottom de la card */}
+                    <View style={[styles.bottom, {height: SCREEN_HEIGHT*0.9 - (SCREEN_HEIGHT*0.66 + 70 + 24 + 5)}]}>
+                      
+                      { userInfos?.admin ?
+                      (
+                        <TouchableOpacity
+                          disabled={!interactable}
+                          style={styles.deleteBlockButton}
+                          onPress={ () => handleDeleteBlock(selectedBlock)}
+                        >
+                          {!interactable ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) :
+                            <Text style={styles.deleteBlockButtonText}>Supprimer le bloc</Text>
+                          }
+                        </TouchableOpacity>
+                      ) : '' }
 
+
+                    </View>
 
                   </View>
                 </View>
-              
-            </ScrollView>
+            </View>
           </Animated.View>
           )}
         </View>
@@ -533,7 +619,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: SCREEN_HEIGHT * 0.9,
+    // height: SCREEN_HEIGHT * 0.9,
     backgroundColor: '#fff',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
@@ -668,7 +754,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     right: 25,
-    top: SCREEN_HEIGHT*0.66 + 70,
+    // top: SCREEN_HEIGHT*0.66 + 70,
     transform: 'translateY(-35px)',
     
     // backgroundColor: '#41b93eff',
@@ -680,6 +766,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+    zIndex: 1
   },
   actionButtonText: {
     color: '#fff',
@@ -687,7 +774,7 @@ const styles = StyleSheet.create({
   },
   imageInfos: {
     width: 'auto',
-    height: SCREEN_HEIGHT*0.66
+    // height: SCREEN_HEIGHT*0.66
   },
   colorLevel: {
     width: 50,
@@ -704,5 +791,58 @@ const styles = StyleSheet.create({
   },
   btnSupprimer: {
     backgroundColor: '#41b93eff',
+  },
+  bottom: {
+    backgroundColor: 'transparent', 
+    overflow: 'hidden', 
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  deleteBlockButton: {
+
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: 'red',
+    borderRadius: 50,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+
+
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 1
+  },
+  deleteBlockButtonText: {
+    fontWeight: 600,
+    color: '#fff'
+  },
+
+  addBlockButton: {
+
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#50fd50ff',
+    borderRadius: 50,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 1
+  },
+  addBlockButtonText: {
+    fontWeight: 600,
+    color: '#fff'
   }
 });

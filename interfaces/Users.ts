@@ -2,6 +2,7 @@
 
 export interface Users {
   id: string;
+  admin: boolean;
   email: string;
   pseudo: string;
   height: number;

@@ -110,7 +110,6 @@ export default function UpdateProfileScreen() {
 
       const formData = new FormData();
 
-      const fileExtension = uri.split('.').pop() || 'jpg';
       const fileName = `${userId}.png`;
 
       formData.append('file', {
@@ -120,7 +119,7 @@ export default function UpdateProfileScreen() {
       } as any);
 
       const { error } = await supabase.storage
-        .from('avatars')
+        .from('walls')
         .upload(fileName, formData, {
           upsert: true,
           contentType: `image/png`
@@ -185,13 +184,13 @@ export default function UpdateProfileScreen() {
 
       <ScrollView style={styles.container}>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => router.back()}
           style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}
         >
           <Ionicons name="arrow-back" size={24} color="black" />
           <Text style={{ marginLeft: 8, fontSize: 16 }}>Retour</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       
         <View style={styles.card}>
 
@@ -290,13 +289,11 @@ export default function UpdateProfileScreen() {
         </View>
 
         
-
-        <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
-          <Text style={styles.signOutText}>Valider</Text>
-        </TouchableOpacity>
-
-        <View style={styles.divider2} />
-        <View style={styles.divider2} />
+        <View style={{display: 'flex', alignItems: 'center'}}>
+          <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
+            <Text style={styles.signOutText}>Valider</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAwareScrollView>
   );
@@ -353,12 +350,13 @@ const styles = StyleSheet.create({
   infoLabel: { flex: 1, fontSize: 14, color: '#666' },
   infoValue: { flex: 2, borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 8, fontWeight: '500' },
   updateButton: { 
-    backgroundColor: '#41b93eff', 
-    padding: 15, 
-    borderRadius: 10, 
-    alignItems: 'center', 
-    marginTop: 30,
-    
+    backgroundColor: '#41b93eff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 50,
+    alignItems: 'center',
+    marginTop: 15,
+
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },

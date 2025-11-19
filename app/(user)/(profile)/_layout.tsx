@@ -8,7 +8,7 @@ export default function ProfileLayout() {
       }}
     >
       <Stack.Screen name="profile" />
-      <Stack.Screen name="updateProfile" />
+      <Stack.Screen options={{headerShown: true, headerTitle: "Modifier le profil", headerTitleAlign: 'center' }} name="updateProfile" />
     </Stack>
   );
 }

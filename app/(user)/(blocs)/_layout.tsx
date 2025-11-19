@@ -8,6 +8,7 @@ export default function BlocsLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen options={{headerShown: true, headerTitle: "Ajouter un bloc", headerTitleAlign: 'center' }} name="addBlock" />
     </Stack>
   );
 }
