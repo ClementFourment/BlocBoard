@@ -1,9 +1,8 @@
-import { Int32 } from "react-native/Libraries/Types/CodegenTypesNamespace";
 
 
 export interface Block {
   id: string;
-  murId: Int32;
+  murId: number;
   colorLevel: string;
   colorBlock: string,
   ouvreur: string;
@@ -12,5 +11,5 @@ export interface Block {
   actif: boolean;
   created_at: Date;
   updated_at: Date;
-  points: Int32;
+  points: number;
 }

@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,12 +21,11 @@ function RootLayoutNav() {
 
     checkVersion();
 
-
     // SystemUI.setBackgroundColorAsync('#ffffff');
     // NavigationBar.setBackgroundColorAsync('#ffffff');
-    NavigationBar.setButtonStyleAsync('dark');
-
-
+    if (Platform.OS === 'android') {
+      NavigationBar.setButtonStyleAsync('dark');
+    }
 
     if (loading) return
     const inAuthGroup = segments[0] === '(auth)'
@@ -40,12 +39,14 @@ function RootLayoutNav() {
 
 
   async function checkVersion() {
-    const version = await fetchVersion();
-    if (version.version == localVersion.version) {
-      // version à jour
-    }
-    else {
-      showUpdatePopup(version);
+    try {
+      const version = await fetchVersion();
+      
+      if (version.version !== localVersion.version) {
+        showUpdatePopup(version);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification de version:", error);
     }
   }
 
@@ -56,33 +57,37 @@ function RootLayoutNav() {
       [
         {
           text: "Mettre à jour",
-          onPress: () => updateApp(version.url)
+          onPress: () => downloadUpdate(version.url)
         },
       ],
       { cancelable: false }
     );
   }
 
-  const updateApp = async (apkUrl: string) => {
-    // try {
-    //   const path = `${RNFS.DownloadDirectoryPath}/update.apk`;
-
-    //   await RNFS.downloadFile({ fromUrl: apkUrl, toFile: path }).promise;
-
-    //   IntentLauncherAndroid.startActivity({
-    //     action: 'android.intent.action.VIEW',
-    //     data: `file://${path}`,
-    //     type: 'application/vnd.android.package-archive',
-    //     flags: 0x10000000,
-    //   });
-    // } catch (e) {
-    //   console.error("Erreur lors de la mise à jour :", e);
-    // }
+  const downloadUpdate = async (apkUrl: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(apkUrl);
+      
+      if (canOpen) {
+        Alert.alert(
+          "Téléchargement",
+          "Le téléchargement va s'ouvrir dans votre navigateur. Une fois terminé, installez le fichier APK.",
+          [
+            {
+              text: "OK",
+              onPress: () => Linking.openURL(apkUrl)
+            }
+          ]
+        );
+      } else {
+        Alert.alert("Erreur", "Impossible d'ouvrir le lien de téléchargement.");
+      }
+    } catch (e) {
+      console.error("Erreur lors de l'ouverture du lien:", e);
+      Alert.alert("Erreur", "Une erreur est survenue. Veuillez télécharger manuellement depuis: " + apkUrl);
+    }
   };
   
-
-
-
 
 
   if (loading) {

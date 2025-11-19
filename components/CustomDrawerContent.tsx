@@ -8,11 +8,10 @@ import { useRouter } from 'expo-router'
 import { Image, StyleSheet, Text, View } from 'react-native'
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
-  const { user, userInfos, avatarKey, fetchUserInfos } = useAuth()
+  const { session, user, userInfos, avatarKey, fetchUserInfos } = useAuth()
   const router = useRouter()
 
-  if (!userInfos) {
-    console.log(userInfos)
+  if (!userInfos && session) {
     fetchUserInfos();
   }
   

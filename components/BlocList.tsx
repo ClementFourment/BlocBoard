@@ -5,7 +5,9 @@ import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Image, Modal, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ImageViewer from 'react-native-image-zoom-viewer';
 import SalleMapMini from './SalleMapMini';
+
 
 interface Props {
   blocks: Block[];
@@ -380,14 +382,14 @@ export default function BlocList({ blocks }: Props) {
                         <TouchableOpacity style={styles.closeButton} onPress={closeImage}>
                           <Ionicons name="close" size={32} color="#fff" />
                         </TouchableOpacity>
-                        {/* <ImageViewer
+                        <ImageViewer
                           imageUrls={[{ url: prefetched as string }]}
                           enableSwipeDown={false}
                           onSwipeDown={closeImage}
                           renderIndicator={() => <></>}
                           saveToLocalByLongPress={false}
                           backgroundColor="rgba(0,0,0,0.9)"
-                        /> */}
+                        />
                       </Modal>
                       {selectedBlock.photo_url ? (
                         <TouchableOpacity onPress={() => openImage(selectedBlock.photo_url || '')}>
