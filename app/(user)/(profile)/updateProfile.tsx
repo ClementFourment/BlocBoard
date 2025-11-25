@@ -119,7 +119,7 @@ export default function UpdateProfileScreen() {
       } as any);
 
       const { error } = await supabase.storage
-        .from('walls')
+        .from('avatars')
         .upload(fileName, formData, {
           upsert: true,
           contentType: `image/png`
@@ -277,15 +277,6 @@ export default function UpdateProfileScreen() {
             />
               
           </View>
-          {showDatePicker && (
-            <DateTimePicker
-              value={formData.birthday}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-            />
-          )}
         </View>
 
         
