@@ -243,11 +243,30 @@ export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) 
     if (error) {
         console.error(error);
         alert('Erreur lors de la suppression du bloc');
-    } else {
-      fetchBlocks();
-      fetchValidateBlocks();
-      closeSheet();
+		return;
     }
+	// supprimer l'image du bloc en cours de suppression
+	try {
+		const filename = block.photo_url?.split('/public/walls/')[1].split('?')[0];
+		
+		if (filename) {
+			const paths = [filename, 'thumb_' + filename];
+			const {error: storageError } = await supabase
+				.storage
+				.from('walls')
+				.remove(paths);
+			if (storageError) {
+				console.error('Erreur suppression image:', storageError);
+			}
+		}
+	}
+	catch (e) {
+		console.error('Erreur lors de la suppression de l\'image:', e);
+	}
+
+	fetchBlocks();
+	fetchValidateBlocks();
+	closeSheet();
   }
 
   return (
@@ -285,10 +304,11 @@ export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) 
           onPress={() => openSheet(item)}
         >
           <View style={styles.imageContainer}>
-            {item.photo_url ? (
+            {item.photo_thumb_url ? (
               <Image
-                source={{ uri: item.photo_url }}
+                source={{ uri: item.photo_thumb_url }}
                 style={[styles.image, { borderColor: item.colorBlock }]}
+				resizeMode="cover"
                 onError={() => {
                   return null;
                 }}
@@ -398,11 +418,12 @@ export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) 
                         '' : '', 
                         { shadowColor: 'transparent', elevation: 0},
                       ]}
-                    >
+                    > 
                       <View style={styles.imageContainer}>
                         {selectedBlock.photo_url ? (
+							
                           <Image
-                            source={{ uri: selectedBlock.photo_url }}
+                            source={{ uri: selectedBlock.photo_thumb_url }}
                             style={[styles.image, { borderColor: selectedBlock.colorBlock }]}
                             onError={() => {
                               return null;

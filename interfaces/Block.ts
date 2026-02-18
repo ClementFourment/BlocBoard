@@ -8,6 +8,7 @@ export interface Block {
   ouvreur: string;
   date_ouverture: Date;
   photo_url?: string;
+  photo_thumb_url?: string;
   actif: boolean;
   created_at: Date;
   updated_at: Date;

@@ -3,10 +3,11 @@ import { COLOR_POINTS } from "@/constants/colorPoints";
 import { COLOR_TRAD } from "@/constants/colorTrad";
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ColorPicker from 'react-native-wheel-color-picker';
 
 
@@ -20,7 +21,7 @@ export default function AddBlock() {
     
     const { selectedMurId } = useLocalSearchParams();
     const [image, setImage] = useState<string | null>(null);
-
+    const [uploading, setUploading] = useState(false);
 
     const pickImage = async () => {
 
@@ -64,6 +65,24 @@ export default function AddBlock() {
         if (color && selectedLevel && selectedMurId && image) {
             validerBloc(color, selectedLevel, selectedMurId, image);
         }
+        else {
+            let errors = [];
+            if (!color) {
+                errors.push('couleur')
+            }
+            if (!selectedLevel) {
+                errors.push('difficulté')
+            }
+            if (!image) {
+                errors.push('image')
+            }
+            if (!selectedMurId) {
+                errors.push('mur')
+            }
+
+            Alert.alert("Erreur", "Champs manquants : " + errors.join(', ')) + ".";
+            return;
+        }
     }
 
     const validerBloc = async (color: string, selectedLevel: string, selectedMurId: string | string[], image: string) => {
@@ -74,29 +93,54 @@ export default function AddBlock() {
                 return;
             }
             
-            const formData = new FormData();
-            const fileName = `image_${selectedMurId}_${Date.now()}.png`;
-            
-            formData.append('file', {
-                name: fileName,
-                uri: image,
-                type: `image/png`,
-            } as any);
-            
-            const { error } = await supabase.storage
-                .from('walls')
-                .upload(fileName, formData, {
-                    upsert: true,
-                    contentType: `image/png`
-                });
-    
-            if (error) throw error;
+            setUploading(true);
 
-            const { data } = supabase.storage
-                .from('walls')
-                .getPublicUrl(fileName);
+            
 
-            const publicUrl = data.publicUrl;
+            const fileNames = [
+                `image_${selectedMurId}_${Date.now()}.png`,
+                `thumb_image_${selectedMurId}_${Date.now()}.png`
+            ];
+            
+            let publicUrls: string[] = [];
+            for (let i = 0; i < fileNames.length; i++) {
+
+                const fileName = fileNames[i];
+                const formData = new FormData();
+
+                let fileUri = image;
+
+                if (i === 1) {
+                    const manipResult = await ImageManipulator.manipulateAsync(
+                        image,
+                        [{ resize: { width: 60 } }],
+                        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+                    );
+                    fileUri = manipResult.uri;
+                }
+
+
+                formData.append('file', {
+                    name: fileName,
+                    uri: fileUri,
+                    type: `image/png`,
+                } as any);
+                
+                const { error } = await supabase.storage
+                    .from('walls')
+                    .upload(fileName, formData, {
+                        upsert: true,
+                        contentType: `image/png`
+                    });
+                if (error) throw error;                
+
+                const { data } = supabase.storage
+                    .from('walls')
+                    .getPublicUrl(fileName);
+                
+                publicUrls.push(data.publicUrl);
+        
+            }
 
             await supabase
                 .from('blocks')
@@ -107,13 +151,17 @@ export default function AddBlock() {
                     actif: true,
                     points: COLOR_POINTS[selectedLevel],
                     murId: selectedMurId,
-                    photo_url: `${publicUrl}?t=${Date.now()}`
+                    photo_url: `${publicUrls[0]}?t=${Date.now()}`,
+                    photo_thumb_url: `${publicUrls[1]}?t=${Date.now()}`
                 });
-
             router.back();
+
         } catch (error) {
             console.error("Erreur lors de la validation du bloc :", error);
             Alert.alert("Erreur", "Impossible d'ajouter le bloc. Réessaye.");
+        }
+        finally {
+            setUploading(false);
         }
     }
 
@@ -121,6 +169,12 @@ export default function AddBlock() {
         
         <ScrollView style={styles.container}>
 
+            {uploading && (
+                <View style={[styles.loaderOverlay]}>
+                    <ActivityIndicator size="large" color="#0000ff" />
+                </View>
+            )}
+    
             <View style={{margin:40, backgroundColor: 'transparent', transform: 'scale(2)', display: 'flex', alignItems: 'center'}}>
                 <SalleMapMini wall={Number(selectedMurId)} ></SalleMapMini>
             </View>
@@ -208,7 +262,13 @@ export default function AddBlock() {
     );
 }
 const styles = StyleSheet.create({
-  
+  loaderOverlay:{
+    ...StyleSheet.absoluteFillObject, // couvre tout l'écran
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    zIndex: 9999,
+  },
   container: { flex: 1, backgroundColor: '#f5f5f5', padding: 10},
   card: {
     backgroundColor: '#fff',

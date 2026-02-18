@@ -1,35 +1,47 @@
 import { useAuth } from '@/contexts/AuthContext'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
-export default function LoginScreen() {
+export default function ResetPasswordScreen() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { resetPassword } = useAuth()
+  const router = useRouter()
 
-  const handleLogin = async () => {
-    if (!email || !password) {
+  const handleResetPassword = async () => {
+    if (!email) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs')
       return
     }
 
     setLoading(true)
-    const { error } = await signIn(email, password)
+    const { error } = await resetPassword(email)
     setLoading(false)
 
     if (error) {
-      Alert.alert('Erreur de connexion', error.message)
+      Alert.alert('Erreur de réinitialisation du mot de passe', error.message)
+    } 
+    else {
+      Alert.alert(
+        'Email envoyé !',
+        'Vérifiez votre email pour réinitialiser votre mot de passe.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(auth)/login'),
+          },
+        ]
+      )
     }
   }
 
@@ -38,12 +50,16 @@ export default function LoginScreen() {
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 200 }}
       enableOnAndroid={true}
-      extraScrollHeight={100}
+      extraScrollHeight={170}
       keyboardOpeningTime={0}
     >
       <View style={styles.content}>
+
+        <View style={styles.divider2} />
+        <View style={styles.divider2} />
+
         <Text style={styles.title}>BlocBoard</Text>
-        <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
+        <Text style={styles.subtitle}>Réinitialisez votre mot de passe</Text>
 
         <View style={styles.form}>
           <TextInput
@@ -58,41 +74,25 @@ export default function LoginScreen() {
             underlineColorAndroid="transparent"
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Mot de passe"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!loading}
-            underlineColorAndroid="transparent"
-          />
+          
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
+            onPress={handleResetPassword}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Se connecter</Text>
+              <Text style={styles.buttonText}>Recevoir un email</Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Pas encore de compte ? </Text>
-            <Link href="/(auth)/register" asChild>
+            <Text style={styles.footerText}>Mot de passe retrouvé ? </Text>
+            <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
-                <Text style={styles.link}>S'inscrire</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-          <View style={styles.footer}>
-            <Link href="/(auth)/resetPassword" asChild>
-              <TouchableOpacity>
-                <Text style={styles.link}>Mot de passe oublié ?</Text>
+                <Text style={styles.link}>Se connecter</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -103,12 +103,19 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+divider2: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'transparent',
+    marginVertical: 15,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
   content: {
     top: '50%',
+    transform: 'translateY(-50%)',
     flex: 1,
     justifyContent: 'center',
     padding: 20,

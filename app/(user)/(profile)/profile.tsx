@@ -109,8 +109,8 @@ export default function ProfileScreen() {
             <Text style={styles.signOutText}>Se déconnecter</Text>
         </TouchableOpacity>
       </View>
-        <View style={styles.divider2} />
-        <View style={styles.divider2} />
+      <View style={styles.divider2} />
+      <View style={styles.divider2} />
         
     </ScrollView>
   )

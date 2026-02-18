@@ -19,7 +19,7 @@ function RootLayoutNav() {
   
   useEffect(() => {
 
-    checkVersion();
+    //checkVersion();
 
     // SystemUI.setBackgroundColorAsync('#ffffff');
     // NavigationBar.setBackgroundColorAsync('#ffffff');

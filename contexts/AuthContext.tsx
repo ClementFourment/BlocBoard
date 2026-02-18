@@ -11,6 +11,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ error: any }>
   avatarKey: number
   refreshAvatar: () => void
   fetchUserInfos: () => Promise<void>
@@ -98,6 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
           if (!error && data) {
             setUserInfos(data)
+            setLoading(false);
           }
         }
       }
@@ -142,6 +144,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+
+  const resetPassword = async (email: string) => {
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://clementfourment.github.io/reset-password-page/',
+    });
+
+    return { error }
+  }
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -152,6 +164,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signIn, 
         signUp, 
         signOut, 
+        resetPassword,
         avatarKey, 
         refreshAvatar, 
         fetchUserInfos 
