@@ -60,48 +60,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Récupérer la session initiale
     supabase.auth.getSession()
       .then(async ({ data: { session } }) => {
-        setSession(session)
-        setUser(session?.user ?? null)
         
-        // Récupérer les infos utilisateur si connecté
-        if (session?.user?.id) {
-          const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+        // setSession(session)
+        // setUser(session?.user ?? null)
+        // // Récupérer les infos utilisateur si connecté
+        // if (session?.user?.id) {
+        //   const { data, error } = await supabase
+        //     .from('users')
+        //     .select('*')
+        //     .eq('id', session.user.id)
+        //     .single()
 
-          if (!error && data) {
-            setUserInfos(data)
-          }
-        }
+        //   if (!error && data) {
+        //     setUserInfos(data)
+        //   }
+       // }
         
-        setLoading(false)
       })
 
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        
         console.log('Auth event:', event) // Debug
         setSession(session)
         setUser(session?.user ?? null)
-        
-        if (event === 'SIGNED_OUT') {
-          console.log('Déconnexion détectée')
-          setUserInfos(null)
-        } else if (session?.user?.id) {
-          // Récupérer les infos à la connexion
-          const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
 
-          if (!error && data) {
-            setUserInfos(data)
-            setLoading(false);
+        if (event === 'SIGNED_OUT') {
+          console.log('Déconnexion...')
+          setUserInfos(null)
+        }
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          if (session?.user?.id) {
+            const { data, error } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+
+            if (data) setUserInfos(data)
+            if (error) console.error(error)
           }
         }
+        setLoading(false);
       }
     )
     
@@ -119,7 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
     })

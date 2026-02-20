@@ -6,7 +6,6 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { Block } from '../../../interfaces/Block';
 import { supabase } from '../../../lib/supabase';
 
-
 export default function Home() {
   
     const [selectedMurId, setSelectedMurId] = useState<string | null>(null);
