@@ -20,6 +20,7 @@ git clone https://github.com/ClementFourment/BlocBoard.git
 cd BlocBoard
 npm install
 npm start
+```
 
 <img width="1080" height="2340" alt="image" src="https://github.com/user-attachments/assets/3d7f750b-b32e-4292-b692-245a3e8b9a59" />
 <img width="1080" height="2340" alt="image" src="https://github.com/user-attachments/assets/90ec8be5-cf17-4d80-8e97-d43cb1d4e615" />
