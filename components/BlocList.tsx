@@ -13,6 +13,7 @@ import SalleMapMini from './SalleMapMini';
 
 
 interface Props {
+  onLoaded?:() => void;
   blocks: Block[];
   fetchBlocks: () => Promise<void>;
   selectedMurId: string | null;
@@ -20,7 +21,7 @@ interface Props {
 
 
 
-export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) {
+export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId }: Props) {
 
   const insets = useSafeAreaInsets();
   const SCREEN_HEIGHT = Dimensions.get('screen').height - insets.top - insets.bottom;
@@ -44,6 +45,11 @@ export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) 
   const [interactable, setInteractable] = useState(false);
 
   const { user, userInfos } = useAuth()
+
+  useEffect(() => {
+    onLoaded?.();
+  }, []);
+
 
   const openImage = async (url: string) => {
     try {
@@ -331,12 +337,14 @@ export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) 
           </View>
           
           <View style={styles.info}>
-            <View style={styles.detailMap}>
-              <LazySalleMapMini wall={item.murId} />
-            </View>
 
             <View style={styles.colorLevel}>
               <Ionicons name="cellular" size={50} color={COLOR_LEVEL[item.colorLevel]} ></Ionicons>
+            </View>
+
+            <View style={styles.detailMap}>
+              {/* <LazySalleMapMini wall={item.murId} /> */}
+              <SalleMapMini wall={item.murId} />
             </View>
 
             <View style={{display: 'flex', flexDirection: 'row'}}>
@@ -448,7 +456,7 @@ export default function BlocList({ blocks, fetchBlocks, selectedMurId }: Props) 
                       
                       <View style={styles.info}>
                         <View style={styles.detailMap}>
-                          <LazySalleMapMini wall={selectedBlock.murId} />
+                          <SalleMapMini wall={selectedBlock.murId} />
                         </View>
                         <View style={styles.colorLevel}>
                           <Ionicons name="cellular" size={50} color={COLOR_LEVEL[selectedBlock.colorLevel]} ></Ionicons>

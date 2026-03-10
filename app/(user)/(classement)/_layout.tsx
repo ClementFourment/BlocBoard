@@ -8,6 +8,7 @@ export default function ClassementLayout() {
       }}
     >
       <Stack.Screen name="classement" />
+      <Stack.Screen options={{headerShown: true, headerBackVisible: true, headerTitle: `Statistiques`, headerTitleAlign: 'center' }} name="userStats" />
     </Stack>
   );
 }

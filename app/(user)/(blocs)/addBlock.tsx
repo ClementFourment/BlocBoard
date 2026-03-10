@@ -1,13 +1,12 @@
 import SalleMapMini from "@/components/SalleMapMini";
+import { COLOR_LEVEL } from "@/constants/colorLevel";
 import { COLOR_POINTS } from "@/constants/colorPoints";
-import { COLOR_TRAD } from "@/constants/colorTrad";
 import { supabase } from "@/lib/supabase";
-import { Picker } from "@react-native-picker/picker";
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ColorPicker from 'react-native-wheel-color-picker';
 
 
@@ -16,7 +15,7 @@ import ColorPicker from 'react-native-wheel-color-picker';
 
 export default function AddBlock() {
 
-    const [selectedLevel, setSelectedLevel] = useState(null);
+    const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
     const [color, setColor] = useState<string | null>();
     
     const { selectedMurId } = useLocalSearchParams();
@@ -175,14 +174,21 @@ export default function AddBlock() {
                 </View>
             )}
     
-            <View style={{margin:40, backgroundColor: 'transparent', transform: 'scale(2)', display: 'flex', alignItems: 'center'}}>
-                <SalleMapMini wall={Number(selectedMurId)} ></SalleMapMini>
-            </View>
+            
 
             <View style={styles.card}>
+
+                <View style={{margin:40, backgroundColor: 'transparent', transform: 'scale(2)', display: 'flex', alignItems: 'center'}}>
+                    <SalleMapMini wall={Number(selectedMurId)} ></SalleMapMini>
+                </View>
+
+                <View style={styles.divider} />
+                <View style={styles.divider2} />
+
                 <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
                 Ajouter une photo
                 </Text>
+                <View style={styles.divider2} />
 
                 {image ? (
                 <Image source={{ uri: image }} style={styles.preview} />
@@ -201,52 +207,65 @@ export default function AddBlock() {
                     <Text style={styles.buttonText}>📸 Caméra</Text>
                 </TouchableOpacity>
                 </View>
-            </View>
 
-            <View style={styles.divider2} />
+                <View style={styles.divider2} />
+                <View style={styles.divider} />
+                <View style={styles.divider2} />
 
-            <View>
-                <Text style={styles.label}>Difficulté :</Text>
+                <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
+                    Selectionner une difficulté
+                </Text>
+                <View style={styles.divider2} />
 
-                <View style={styles.pickerWrapper}>
-                    <Picker
-                        selectedValue={selectedLevel}
-                        onValueChange={(value) => {
-                            setSelectedLevel(value);
-                        }}
-                    >
-                        <Picker.Item label="Sélectionner une couleur..." value={null} />
+                <View style={styles.colorLevelPicker}>
 
-                        {Object.keys(COLOR_POINTS).map((color) => (
-                            
-                            <Picker.Item
+                    {Object.keys(COLOR_POINTS).map((color, i) => (
+                        
+                        <Pressable
                             key={color}
-                            label={`${(COLOR_TRAD[color]).charAt(0).toUpperCase()+(COLOR_TRAD[color]).slice(1)} (${COLOR_POINTS[color]} pts)`}
-                            value={color}
+                            onPress={() => {
+                                setSelectedLevel(color);
+                                console.log(i)
+                            }}
+                        >
+                            <View
+                                style={{
+                                width: 30,
+                                height: 30,
+                                borderWidth: 2,
+                                borderRadius: 4,
+                                borderColor: COLOR_LEVEL[color],
+                                marginRight: 10,
+                                backgroundColor: selectedLevel === color ? COLOR_LEVEL[color] : "transparent"
+                                }}
                             />
-                        ))}
-
-                    </Picker>
+                        </Pressable>
+                    ))}
                 </View>
+                
+                <View style={styles.divider2} />
+                <View style={styles.divider} />
+                <View style={styles.divider2} />
+
+                <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
+                    Couleur des prises
+                </Text>
+                <View style={styles.divider2} />
+                
+                    <View style={{ height: 300 }}>
+                        <ColorPicker
+                            onColorChange={c => setColor(c)}
+                            onColorChangeComplete={c => console.log('Couleur finale:', c)}
+                            thumbSize={30}
+                            sliderSize={30}
+                            noSnap={true}
+                            row={false}
+                        />
+                    </View>
+
+
             </View>
 
-            <View style={styles.divider2} />
-
-            <View>
-                <Text style={styles.label}>Couleur :</Text>
-                <View style={{ height: 300 }}>
-                    <ColorPicker
-                        onColorChange={c => setColor(c)}
-                        onColorChangeComplete={c => console.log('Couleur finale:', c)}
-                        thumbSize={30}
-                        sliderSize={30}
-                        noSnap={true}
-                        row={false}
-                    />
-                </View>
-            </View>
-
-            <View style={styles.divider2} />
 
             <View style={{display: 'flex', alignItems: 'center'}}>
                 <TouchableOpacity
@@ -262,6 +281,11 @@ export default function AddBlock() {
     );
 }
 const styles = StyleSheet.create({
+
+  colorLevelPicker: {
+    display: 'flex',
+    flexDirection: 'row',
+  },
   loaderOverlay:{
     ...StyleSheet.absoluteFillObject, // couvre tout l'écran
     justifyContent: 'center',
@@ -304,6 +328,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: { color: "#fff", fontWeight: "600" },
+  divider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 15,
+  },
   divider2: {
     width: '100%',
     height: 1,

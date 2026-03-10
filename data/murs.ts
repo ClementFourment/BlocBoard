@@ -116,13 +116,13 @@ export const murs = [
     ], 
     
   },
-  { 
-    id: '17', 
-    portions:[
-      {x: 256, y: 165, rotation: -4, width: 40, height: 5}
-    ], 
+  // { 
+  //   id: '17', 
+  //   portions:[
+  //     {x: 256, y: 165, rotation: -4, width: 40, height: 5}
+  //   ], 
     
-  },
+  // },
   { 
     id: '18', 
     portions:[

@@ -3,16 +3,16 @@
     "name": "BlocBoard",
     "slug": "BlocBoard",
     "version": "1.0.0",
+
+    "runtimeVersion": "1.0.0",
+
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "blocboard",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -23,8 +23,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.BlocBoard",
-      "runtimeVersion": "1.0.0"
+      "package": "com.anonymous.BlocBoard"
     },
     "web": {
       "output": "static",

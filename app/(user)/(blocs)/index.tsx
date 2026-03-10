@@ -12,6 +12,7 @@ export default function Home() {
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [selectedBlocks, changeBlocks] = useState<Block[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingBlockList, setLoadingBlockList] = useState(true);
 
     useEffect(() => {
         fetchBlocks();
@@ -39,6 +40,7 @@ export default function Home() {
     }
     
     useEffect(() => {
+      setLoadingBlockList(false)
       if (selectedMurId === null || selectedMurId =='0') {
         changeBlocks(blocks);
       } 
@@ -59,8 +61,18 @@ export default function Home() {
     return (
         
         <ScrollView style={styles.container}>
-            <SalleMap onSelectMur={(mur) => {setSelectedMurId(mur)}} />
-            <BlocList blocks={selectedBlocks} fetchBlocks={fetchBlocks} selectedMurId={selectedMurId} />
+
+          <SalleMap onSelectMur={(mur) => {setSelectedMurId(mur); setLoadingBlockList(true)}} />
+
+          {loadingBlockList && 
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#ff6600" />
+                <Text>Chargement des blocs...</Text>
+            </View>
+          }
+
+          <BlocList onLoaded={() => setLoadingBlockList(false)} blocks={selectedBlocks} fetchBlocks={fetchBlocks} selectedMurId={selectedMurId} />
+
         </ScrollView>
     );
 }

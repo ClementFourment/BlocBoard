@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -76,6 +76,16 @@ export default function Classement() {
             </View>
         );
     }
+    function handlePress(user: any) {
+        router.push({
+            pathname:'/userStats',
+            params: {
+                id: user.id,
+                pseudo: user.pseudo,
+                email: user.email
+            }
+        });
+    }
     return (
         
         <ScrollView style={styles.listContainer}>
@@ -89,6 +99,7 @@ export default function Classement() {
                             index === 0 ? styles.cardFirst : {}, 
                             index === users.length - 1 ? styles.cardLast : {}
                         ]}
+                        onPress={ () => handlePress(item)}
                     >
 
 
