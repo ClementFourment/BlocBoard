@@ -2,11 +2,14 @@ import BlocList from '@/components/BlocList';
 import SalleMap from '@/components/SalleMap';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Block } from '../../../interfaces/Block';
 import { supabase } from '../../../lib/supabase';
 
 export default function Home() {
+  
+    const [blocListKey, setBlocListKey] = useState<number>(0);
+    const [selectedFilter, setSelectedFilter] = useState<number | null>(0);
   
     const [selectedMurId, setSelectedMurId] = useState<string | null>(null);
     const [blocks, setBlocks] = useState<Block[]>([]);
@@ -14,8 +17,17 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [loadingBlockList, setLoadingBlockList] = useState(true);
 
+
+    const reloadBlocList = () => {
+      setLoadingBlockList(true);
+      setBlocListKey(blocListKey + 1);
+    };
+
     useEffect(() => {
-        fetchBlocks();
+        fetchBlocks()
+        // .then(
+        //   () => setLoadingBlockList(false)
+        // );
     }, []);
 
     useFocusEffect(
@@ -37,19 +49,34 @@ export default function Home() {
           setBlocks(data || []);
       }
       setLoading(false);
+      
     }
     
+
+
+
+
     useEffect(() => {
-      setLoadingBlockList(false)
-      if (selectedMurId === null || selectedMurId =='0') {
-        changeBlocks(blocks);
-      } 
-      else {
-        const newBlocs = blocks.filter((bloc) => bloc.murId.toString() === selectedMurId);
-        changeBlocks(newBlocs);
-      }
-    }, [selectedMurId, blocks]);
+      
+      setLoadingBlockList(true);
+      const task = setTimeout(() => {
+        if (selectedMurId === null || selectedMurId =='0') {
+          changeBlocks(blocks);
+        } 
+        else {
+          const newBlocs = blocks.filter((bloc) => bloc.murId.toString() === selectedMurId);
+          changeBlocks(newBlocs);
+        }
+        setLoadingBlockList(false);
+      }, 0);
+      return () => clearTimeout(task);
+    }, [selectedMurId, blocks, selectedFilter]);
     
+
+
+
+
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -58,20 +85,79 @@ export default function Home() {
             </View>
         );
     }
+
+
+
+
+
+    const filters = [
+      'Tous les blocs',
+      'Mes projets',
+      'Mes blocs validés'
+    ];
+
+
     return (
         
         <ScrollView style={styles.container}>
 
-          <SalleMap onSelectMur={(mur) => {setSelectedMurId(mur); setLoadingBlockList(true)}} />
+          <SalleMap onSelectMur={(mur) => {setLoadingBlockList(true); setSelectedMurId(mur); }} />
 
-          {loadingBlockList && 
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#ff6600" />
-                <Text>Chargement des blocs...</Text>
-            </View>
+          {/* Filtre */}
+          {(
+            <>
+              <View style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
+    
+                {Object.keys(filters).map((filter, i) => (
+                  <Pressable
+                    key={filter}
+                    onPress={() => {
+                      if (i != selectedFilter) {
+                        setLoadingBlockList(true); 
+                        setSelectedFilter(i);
+                        if (i==0) {
+                          reloadBlocList();
+                        }
+                      }
+                    }}
+                  >
+                    <View style={{marginRight: 10, display: 'flex', flexDirection: 'row', alignItems: 'center'}}>
+                      <View
+                          style={{
+                          width: 15,
+                          height: 15,
+                          borderWidth: 2,
+                          borderRadius: 50,
+                          marginRight: 2,
+                          borderColor: '#18181877',
+                          backgroundColor: selectedFilter === i ? '#18181877' : "transparent"
+                          }}
+                      />
+                      <Text style={{fontStyle: 'italic', color: '#18181877'}}>{filters[i]}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+                
+              </View>
+    
+              <View style={{marginBottom: 15}} />
+            </>
+          )}
+
+
+
+          {loadingBlockList && (
+              <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#ff6600" />
+                  <Text>Chargement des blocs...</Text>
+              </View>
+            )
           }
+            
+          <BlocList key={blocListKey} blocks={selectedBlocks} fetchBlocks={fetchBlocks} selectedMurId={selectedMurId} filter={selectedFilter} />
+            
+          
 
-          <BlocList onLoaded={() => setLoadingBlockList(false)} blocks={selectedBlocks} fetchBlocks={fetchBlocks} selectedMurId={selectedMurId} />
 
         </ScrollView>
     );

@@ -2,67 +2,53 @@ import SalleMapMini from "@/components/SalleMapMini";
 import { COLOR_LEVEL } from "@/constants/colorLevel";
 import { COLOR_POINTS } from "@/constants/colorPoints";
 import { supabase } from "@/lib/supabase";
-import * as ImageManipulator from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ColorPicker from 'react-native-wheel-color-picker';
 
 
 
 
 
-export default function AddBlockScreen() {
+export default function UpdateBlockScreen() {
 
     const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
     const [color, setColor] = useState<string | null>();
-    
-    const { selectedMurId } = useLocalSearchParams();
-    const [image, setImage] = useState<string | null>(null);
+    const { selectedMurId, selectedBlockId } = useLocalSearchParams();
     const [uploading, setUploading] = useState(false);
 
-    const pickImage = async () => {
+    
+    useEffect(() => {
+        fetchBlockInfos();
+    }, []);
+    
+    const fetchBlockInfos = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('blocks')
+                .select('*')
+                .eq('id', selectedBlockId)
+                .single();
 
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert("Permission refusée", "Tu dois autoriser l'accès à la galerie pour choisir une photo.");
-            return;
+            if (error) {
+                console.error("Erreur lors de la recupération des infos du bloc :", error);
+                Alert.alert("Erreur", "Impossible de récupérer les infos du bloc. Réessaye.");
+            }
+            else {
+                setSelectedLevel(data.colorLevel);
+                setColor(data.colorBlock);
+            }
+
+        } catch (error) {
+            console.error("Erreur lors de la recupération des infos du bloc :", error);
+            Alert.alert("Erreur", "Impossible de récupérer les infos du bloc. Réessaye.");
         }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: 'images',
-              allowsEditing: true,
-              quality: 0.7,
-            });
-
+    }
+    const handleUpdateBloc = () => {
         
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
-        }
-    };
-
-    const takePhoto = async () => {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-            alert("Permission caméra refusée");
-            return;
-        }
-
-        let result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            quality: 0.7,
-        });
-
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
-        }
-    };
-
-    const handleValiderBloc = () => {
-        
-        if (color && selectedLevel && selectedMurId && image) {
-            validerBloc(color, selectedLevel, selectedMurId, image);
+        if (color && selectedLevel && selectedMurId && selectedBlockId) {
+            updateBloc(color, selectedLevel, selectedMurId, selectedBlockId);
         }
         else {
             let errors = [];
@@ -71,9 +57,6 @@ export default function AddBlockScreen() {
             }
             if (!selectedLevel) {
                 errors.push('difficulté')
-            }
-            if (!image) {
-                errors.push('image')
             }
             if (!selectedMurId) {
                 errors.push('mur')
@@ -84,10 +67,10 @@ export default function AddBlockScreen() {
         }
     }
 
-    const validerBloc = async (color: string, selectedLevel: string, selectedMurId: string | string[], image: string) => {
+    const updateBloc = async (color: string, selectedLevel: string, selectedMurId: string | string[], selectedBlockId: string | string[]) => {
         
         try {
-            if (!color || !selectedLevel || !selectedMurId || !image) {
+            if (!color || !selectedLevel || !selectedMurId || !selectedBlockId) {
                 Alert.alert("Erreur", "Tous les champs doivent être remplis !");
                 return;
             }
@@ -95,64 +78,14 @@ export default function AddBlockScreen() {
             setUploading(true);
 
             
-
-            const fileNames = [
-                `image_${selectedMurId}_${Date.now()}.png`,
-                `thumb_image_${selectedMurId}_${Date.now()}.png`
-            ];
-            
-            let publicUrls: string[] = [];
-            for (let i = 0; i < fileNames.length; i++) {
-
-                const fileName = fileNames[i];
-                const formData = new FormData();
-
-                let fileUri = image;
-
-                if (i === 1) {
-                    const manipResult = await ImageManipulator.manipulateAsync(
-                        image,
-                        [{ resize: { width: 60 } }],
-                        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-                    );
-                    fileUri = manipResult.uri;
-                }
-
-
-                formData.append('file', {
-                    name: fileName,
-                    uri: fileUri,
-                    type: `image/png`,
-                } as any);
-                
-                const { error } = await supabase.storage
-                    .from('walls')
-                    .upload(fileName, formData, {
-                        upsert: true,
-                        contentType: `image/png`
-                    });
-                if (error) throw error;                
-
-                const { data } = supabase.storage
-                    .from('walls')
-                    .getPublicUrl(fileName);
-                
-                publicUrls.push(data.publicUrl);
-        
-            }
-
             await supabase
                 .from('blocks')
-                .insert({
+                .update({
                     colorLevel: selectedLevel,
                     colorBlock: color,
-                    ouvreur: '',
-                    actif: true,
                     points: COLOR_POINTS[selectedLevel],
-                    murId: selectedMurId,
-                    photo_url: `${publicUrls[0]}?t=${Date.now()}`,
-                    photo_thumb_url: `${publicUrls[1]}?t=${Date.now()}`
-                });
+                })
+                .eq('id', selectedBlockId);
             router.back();
 
         } catch (error) {
@@ -185,32 +118,6 @@ export default function AddBlockScreen() {
                 <View style={styles.divider} />
                 <View style={styles.divider2} />
 
-                <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
-                Ajouter une photo
-                </Text>
-                <View style={styles.divider2} />
-
-                {image ? (
-                <Image source={{ uri: image }} style={styles.preview} />
-                ) : (
-                <View style={styles.emptyPreview}>
-                    <Text style={{ color: "#999" }}>Aucune image</Text>
-                </View>
-                )}
-
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 15 }}>
-                <TouchableOpacity style={styles.button} onPress={pickImage}>
-                    <Text style={styles.buttonText}>📁 Galerie</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.button} onPress={takePhoto}>
-                    <Text style={styles.buttonText}>📸 Caméra</Text>
-                </TouchableOpacity>
-                </View>
-
-                <View style={styles.divider2} />
-                <View style={styles.divider} />
-                <View style={styles.divider2} />
 
                 <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
                     Selectionner une difficulté
@@ -259,6 +166,7 @@ export default function AddBlockScreen() {
                             sliderSize={30}
                             noSnap={true}
                             row={false}
+                            color={""+color}
                         />
                     </View>
 
@@ -269,9 +177,9 @@ export default function AddBlockScreen() {
             <View style={{display: 'flex', alignItems: 'center'}}>
                 <TouchableOpacity
                     style={[styles.buttonValidate]}
-                    onPress={() => handleValiderBloc()}
+                    onPress={() => handleUpdateBloc()}
                 >
-                    <Text style={styles.buttonText}>Ajouter le bloc</Text>
+                    <Text style={styles.buttonText}>Modifier le bloc</Text>
                 </TouchableOpacity>
             </View>
             <View style={styles.divider2} />

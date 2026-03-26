@@ -1,28 +1,29 @@
 import { COLOR_LEVEL } from '@/constants/colorLevel';
 import { useAuth } from '@/contexts/AuthContext';
 import { Block } from '@/interfaces/Block';
+import { TrainingBlock } from '@/interfaces/TrainingBlock';
 import { ValidateBlock } from '@/interfaces/ValidateBlocks';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, Image, Modal, PanResponder, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Dimensions, FlatList, Image, Modal, PanResponder, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SalleMapMini from './SalleMapMini';
 
 
 interface Props {
-  onLoaded?:() => void;
   blocks: Block[];
   fetchBlocks: () => Promise<void>;
   selectedMurId: string | null;
+  filter: number | null;
 }
 
 
 
-export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId }: Props) {
-
+export default function BlocList({ blocks, fetchBlocks, selectedMurId, filter }: Props) {
+  
   const insets = useSafeAreaInsets();
   const SCREEN_HEIGHT = Dimensions.get('screen').height - insets.top - insets.bottom;
   // console.log('\nscreen', Dimensions.get('screen').height,
@@ -34,23 +35,40 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
 
   const [selectedBlock, setSelectedBlock] = useState<Block | undefined>();
   const [validateBlocks, setValidateBlocks] = useState<ValidateBlock[]>([]);
+  const [trainingBlocks, setTrainingBlocks] = useState<TrainingBlock[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [visible, setVisible] = useState(false);
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
 
   const [imageVisible, setImageVisible] = useState(false);
+  const [menuDeroulantVisible, setMenuDeroulantVisible] = useState(false);
   const [prefetched, setPrefetched] = useState<string | null>(null);
+  
 
   const [interactable, setInteractable] = useState(false);
 
   const { user, userInfos } = useAuth()
 
+
+  
+
+  // useEffect(() => {
+  //   onLoaded?.();
+  // }, [blocks, filter]);
+
+  
+  useFocusEffect(
+    useCallback(() => {
+      closeSheet()
+    }, [])
+  );
+
   useEffect(() => {
-    onLoaded?.();
-  }, []);
-
-
+    setMenuDeroulantVisible(false);
+  }, [selectedBlock]);
+  
   const openImage = async (url: string) => {
     try {
 
@@ -168,8 +186,33 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
     }
 
     console.log('valider', block.id)
+
+    annulerTrainingBlock(block);
+    fetchValidateBlocks();
+  }
+  const validerTrainingBlock = async (block: Block) => {
     
-   fetchValidateBlocks();
+    const trainingBlock = {
+      idBlock: block.id,
+      idUser: user?.id,
+    }
+
+    if (!trainingBlock.idUser) return;
+
+    const { data, error } = await (supabase
+      .from('trainingBlocks') as any)
+      .upsert([trainingBlock], { onConflict: ['idBlock', 'idUser'] })
+      .select();
+
+    if (error) {
+      console.error("Erreur upsert trainingBlock :", error);
+      return null;
+    }
+
+    console.log('validerTraining', block.id)
+
+    annulerBlock(block);
+    fetchTrainingBlocks();
   }
 
   const annulerBlock = async (block: Block) => {
@@ -190,6 +233,25 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
 
     fetchValidateBlocks();
   }
+  const annulerTrainingBlock = async (block: Block) => {
+    if (!user?.id) return;
+
+    const { error } = await supabase
+      .from('trainingBlocks')
+      .delete()
+      .eq('idBlock', block.id)
+      .eq('idUser', user.id);
+
+    if (error) {
+      console.error("Erreur lors de l'annulation du bloc :", error);
+      return;
+    }
+
+    console.log('training annulé :', block.id);
+
+    fetchTrainingBlocks();
+  }
+  
 
   const fetchValidateBlocks = async () => {
     setInteractable(false);
@@ -206,6 +268,22 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
         setInteractable(true);
     }
   }
+  const fetchTrainingBlocks = async () => {
+    setInteractable(false);
+    const { data, error } = await supabase
+        .from('trainingBlocks')
+        .select('*')
+        .eq('idUser', user?.id);
+
+    if (error) {
+        console.error(error);
+        alert('Erreur lors de la récupération des blocs');
+    } else {
+        setTrainingBlocks(data || []);
+        setInteractable(true);
+    }
+  }
+  
 
   function test(s: Block) {
     const selectedId = s.id;
@@ -217,8 +295,8 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
 
   useEffect(() => {
       fetchValidateBlocks();
+      fetchTrainingBlocks();
   }, []);
-
   
 
   const handleDeleteBlock = (block: Block) => {
@@ -275,10 +353,11 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
 	closeSheet();
   }
 
+  
+
   return (
     <View style={styles.listContainer}>
-
-
+      
       <View style={{display: 'flex', alignItems: 'center'}}>
         
         { (userInfos?.admin && selectedMurId && Number(selectedMurId) > 0) ? (
@@ -293,67 +372,90 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
         }
 
       </View>
+      <FlatList
+        scrollEnabled={false}
+        data={blocks}
+        
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews
 
-      {blocks.map((item, index) => {
-        
-        const isValidated = validateBlocks.some(b => b.idBlock === item.id);
-        
-        return (
-        <TouchableOpacity
-          key={item.id}
-          style={[
-            styles.card,
-            isValidated ? styles.bgValidate : '',
-            index === 0 ? styles.cardFirst : {}, 
-            index === blocks.length - 1 ? styles.cardLast : {}
-          ]}
-          onPress={() => openSheet(item)}
-        >
-          <View style={styles.imageContainer}>
-            {item.photo_thumb_url ? (
-              <Image
-                source={{ uri: item.photo_thumb_url }}
-                style={[styles.image, { borderColor: item.colorBlock }]}
-				resizeMode="cover"
-                onError={() => {
-                  return null;
-                }}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.image,
-                  {
-                    borderColor: item.colorBlock,
-                    backgroundColor: '#eee',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  },
-                ]}
-              >
-                <Text style={{ color: '#999', textAlign: 'center'}}>Pas de photo</Text>
+        ListEmptyComponent={
+          <Text>Aucun bloc</Text>
+        }
+
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item, index }) => {
+
+          if (filter == 1 && !trainingBlocks.some(b => b.idBlock === item.id)) {
+            return null;
+          }
+          if (filter == 2 && !validateBlocks.some(b => b.idBlock === item.id)) {
+            return null;
+          }
+      
+          const isValidated = validateBlocks.some(b => b.idBlock === item.id);
+          const isTraining = trainingBlocks.some(b => b.idBlock === item.id);
+          return (
+            <TouchableOpacity
+
+              key={item.id}
+              style={[
+                styles.card,
+                isValidated ? styles.bgValidate : (isTraining ? styles.bgTraining :''),
+                index === 0 ? styles.cardFirst : {}, 
+                index === blocks!.length - 1 ? styles.cardLast : {}
+              ]}
+              onPress={() => openSheet(item)}
+            >
+              <View style={styles.imageContainer}>
+                {item.photo_thumb_url ? (
+                  <Image
+                    source={{ uri: item.photo_thumb_url }}
+                    style={[styles.image, { borderColor: item.colorBlock }]}
+                    resizeMode="cover"
+                    onError={() => {
+                      return null;
+                    }}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.image,
+                      {
+                        borderColor: item.colorBlock,
+                        backgroundColor: '#eee',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      },
+                    ]}
+                  >
+                    <Text style={{ color: '#999', textAlign: 'center'}}>Pas de photo</Text>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
-          
-          <View style={styles.info}>
+              
+              <View style={styles.info}>
 
-            <View style={styles.colorLevel}>
-              <Ionicons name="cellular" size={50} color={COLOR_LEVEL[item.colorLevel]} ></Ionicons>
-            </View>
+                <View style={styles.colorLevel}>
+                  <Ionicons name="cellular" size={50} color={COLOR_LEVEL[item.colorLevel]} ></Ionicons>
+                </View>
 
-            <View style={styles.detailMap}>
-              {/* <LazySalleMapMini wall={item.murId} /> */}
-              <SalleMapMini wall={item.murId} />
-            </View>
+                <View style={styles.detailMap}>
+                  {/* <LazySalleMapMini wall={item.murId} /> */}
+                  <SalleMapMini wall={item.murId} />
+                </View>
 
-            <View style={{display: 'flex', flexDirection: 'row'}}>
-              <Text style={styles.detailPoints}>{item.points}</Text>
-              <Text style={styles.detailPts}>pts</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      )})}
+                <View style={{display: 'flex', flexDirection: 'row'}}>
+                  <Text style={styles.detailPoints}>{item.points}</Text>
+                  <Text style={styles.detailPts}>pts</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )
+        }}
+      />
 
 
       
@@ -455,16 +557,20 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
                       </View>
                       
                       <View style={styles.info}>
-                        <View style={styles.detailMap}>
-                          <SalleMapMini wall={selectedBlock.murId} />
-                        </View>
+                        
                         <View style={styles.colorLevel}>
                           <Ionicons name="cellular" size={50} color={COLOR_LEVEL[selectedBlock.colorLevel]} ></Ionicons>
                         </View>
+
+                        <View style={styles.detailMap}>
+                          <SalleMapMini wall={selectedBlock.murId} />
+                        </View>
+
                         <View style={{display: 'flex', flexDirection: 'row'}}>
                           <Text style={styles.detailPoints}>{selectedBlock.points}</Text>
                           <Text style={styles.detailPts}>pts</Text>
                         </View>
+                        
                       </View>
                     </View>
 
@@ -511,17 +617,26 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
                     </View>
 
                     
-                    {/* Action Button */}
+
+                    {/* valider le bloc */}
                     <TouchableOpacity 
                       disabled={!interactable}
                       style={[styles.actionButton,
                         {top: SCREEN_HEIGHT*0.66 + 70},
                         validateBlocks.some(b => b.idBlock === selectedBlock.id) ?
-                        styles.btnSupprimer : styles.btnValider
+                        styles.btnSupprimer : 
+                        ( trainingBlocks.some(b => b.idBlock === selectedBlock.id) ?
+                          styles.btnTraining :
+                          styles.btnValider
+                        )
                       ]}
                       onPress={() => validateBlocks.some(b => b.idBlock === selectedBlock.id) ? 
                         annulerBlock(selectedBlock)
                         : validerBlock(selectedBlock)
+                      }
+                      delayLongPress={200}
+                      onLongPress={() => 
+                        setMenuDeroulantVisible(true)
                       }
                     >
                       {!interactable ? (
@@ -539,23 +654,91 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
                       }
                       
                     </TouchableOpacity>
-                    
+
+                    {/* menu deroulant au longpress */}
+                    {menuDeroulantVisible && (
+                      <>
+                        <Pressable
+                          style={styles.overlay}
+                          onPress={() => setMenuDeroulantVisible(false)}
+                        />
+                        <View style={styles.menuDeroulant}>
+                          <TouchableOpacity 
+                            disabled={!interactable}
+                            style={styles.menuDeroulantButton}
+                            onPress={() => {
+                                (trainingBlocks.some(b => b.idBlock === selectedBlock.id) ? 
+                                annulerTrainingBlock(selectedBlock)
+                                : validerTrainingBlock(selectedBlock));
+                                setMenuDeroulantVisible(false);
+                              }
+                            }
+                          >
+                            <Text style={{fontWeight: 'bold', color: 'white'}}>
+                              {
+                                trainingBlocks.some(b => b.idBlock === selectedBlock.id) ? 
+                                "Retirer des projets" :
+                                "Ajouter aux projets"
+                              }
+                            </Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity 
+                            disabled={!interactable}
+                            style={styles.menuDeroulantButton}
+                            onPress={() => {
+                                (validateBlocks.some(b => b.idBlock === selectedBlock.id) ? 
+                                annulerBlock(selectedBlock)
+                                : validerBlock(selectedBlock));
+                                setMenuDeroulantVisible(false);
+                              }
+                            }
+                          >
+                            <Text style={{fontWeight: 'bold', color: 'white'}}>
+                              {
+                                validateBlocks.some(b => b.idBlock === selectedBlock.id) ? 
+                                "Annuler le bloc" :
+                                "Valider le bloc"
+                              }
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
                     {/* Bottom de la card */}
                     <View style={[styles.bottom, {height: SCREEN_HEIGHT*0.9 - (SCREEN_HEIGHT*0.66 + 70 + 24 + 5)}]}>
                       
                       { userInfos?.admin ?
                       (
-                        <TouchableOpacity
-                          disabled={!interactable}
-                          style={styles.deleteBlockButton}
-                          onPress={ () => handleDeleteBlock(selectedBlock)}
-                        >
-                          {!interactable ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) :
-                            <Text style={styles.deleteBlockButtonText}>Supprimer le bloc</Text>
-                          }
-                        </TouchableOpacity>
+
+                        <View style={{display: 'flex', flexDirection: 'row'}}>
+                          
+                          <TouchableOpacity
+                            disabled={!interactable}
+                            style={styles.updateButton}
+                            onPress={ () => {
+                              router.push(`/updateBlock?selectedMurId=${selectedBlock.murId}&selectedBlockId=${selectedBlock.id}`)}
+                            }
+                          >
+                            {!interactable ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) :
+                              <Text style={styles.deleteBlockButtonText}>Modifier</Text>
+                            }
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            disabled={!interactable}
+                            style={styles.deleteBlockButton}
+                            onPress={ () => handleDeleteBlock(selectedBlock)}
+                          >
+                            {!interactable ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) :
+                              <Text style={styles.deleteBlockButtonText}>Supprimer</Text>
+                            }
+                          </TouchableOpacity>
+                        </View>
                       ) : '' }
 
 
@@ -573,6 +756,13 @@ export default function BlocList({ onLoaded, blocks, fetchBlocks, selectedMurId 
 }
 
 const styles = StyleSheet.create({
+  
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+    backgroundColor: '#ffffff62'
+  },
   listContainer: {
     paddingBottom: 24,
     flex: 1,
@@ -674,6 +864,9 @@ const styles = StyleSheet.create({
   bgValidate: {
     backgroundColor: '#bfffc4ff',
   },
+  bgTraining: {
+    backgroundColor: 'rgb(255, 234, 191)',
+  },
   content: {
     // paddingHorizontal: 20,
     // paddingBottom: 40,
@@ -712,9 +905,16 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   divider: {
+    width: '100%',
     height: 1,
-    backgroundColor: '#E5E7EB',
-    marginBottom: 24,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 15,
+  },
+  divider2: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'transparent',
+    marginVertical: 15,
   },
   detailsContainer: {
     gap: 16,
@@ -775,6 +975,54 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 22,
   },
+  trainingButton: {
+    position:'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    left: 10,
+    // top: SCREEN_HEIGHT*0.66 + 70,
+    transform: 'translateY(-35px)',
+    
+    // backgroundColor: '#41b93eff',
+    backgroundColor: '#bdbdbdff',
+
+    
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 1
+  },
+  menuDeroulant: {
+    position:'absolute',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right: 10,
+    bottom: 0,
+    transform: 'translateY(-110px)',
+    padding: 10,
+    // backgroundColor: 'rgb(80, 96, 79)',
+    backgroundColor: 'transparent',
+
+    zIndex: 100
+  },
+  menuDeroulantButton: {
+    margin: 5,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+    width: 150,
+    // backgroundColor: '#41b93eff',
+    backgroundColor: '#181818b0',
+    
+    zIndex: 10
+  },
   actionButton: {
     position:'absolute',
     width: 70,
@@ -782,7 +1030,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    right: 25,
+    right: 10,
     // top: SCREEN_HEIGHT*0.66 + 70,
     transform: 'translateY(-35px)',
     
@@ -818,6 +1066,9 @@ const styles = StyleSheet.create({
   btnValider: {
     backgroundColor: '#c3c3c3ff',
   },
+  btnTraining: {
+    backgroundColor: 'rgb(255, 163, 59)', 
+  },
   btnSupprimer: {
     backgroundColor: '#41b93eff',
   },
@@ -828,6 +1079,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  updateButton: {
+    marginRight: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: 'rgb(255, 155, 56)',
+    borderRadius: 50,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+
+
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 1
   },
   deleteBlockButton: {
 

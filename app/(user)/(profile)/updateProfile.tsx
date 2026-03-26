@@ -42,8 +42,6 @@ export default function UpdateProfileScreen() {
     fetchUserInfos();
   }, []);
 
-  
-
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
